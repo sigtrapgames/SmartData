@@ -7,7 +7,7 @@ Need a flexible way to connect everything in your game without singletons, hard-
 
 ### INSTALLATION
 * Grab *SmartData.unitypackage* from the [Releases page](https://github.com/sigtrapgames/SmartData/releases) for everything you need!
-* To use the *git* repository, you'll need our events implementation, *Relay*<sup>[1]</sup>. [github.com/SixWays/Relay](https://github.com/SixWays/Relay)
+* OR, to use the *git* repository, you'll need our events implementation, *Relay*<sup>[1]</sup>. [github.com/SixWays/Relay](https://github.com/SixWays/Relay)
 * Requires Unity 2018.2 or above.
 
 # What is SmartData?
