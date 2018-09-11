@@ -1,0 +1,61 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using SmartData.Smart{1}.Data;
+using SmartData.Abstract;
+using SmartData.Interfaces;
+using Sigtrap.Relays;
+
+namespace SmartData.Smart{1}.Data {{
+	/// <summary>
+	/// Dynamic collection of {1}Var assets.
+	/// </summary>
+	[CreateAssetMenu(menuName="SmartData/{2}/{2} Multi", order=1)]
+	public class {1}Multi: SmartMulti<{0}, {1}Var>, ISmartMulti<{0}, {1}Var> {{
+		#if UNITY_EDITOR
+		const string VALUETYPE = "{0}";
+		const string DISPLAYTYPE = "{2} Multi";
+		#endif
+	}}
+}}
+
+namespace SmartData.Smart{1} {{
+	/// <summary>
+	/// Indexed reference into a {1}Multi (read-only access).
+	/// For write access make a reference to {1}MultiRefWriter.
+	/// </summary>
+	[System.Serializable]
+	public class {1}MultiReader : SmartDataMultiRef<{1}Multi, {0}, {1}Var>  {{
+		public static implicit operator {0}({1}MultiReader r){{
+            return r.value;
+		}}
+		
+		[SerializeField]
+		Data.{1}Var.{1}Event _onUpdate;
+		
+		protected override System.Action<{0}> GetUnityEventInvoke(){{
+			return _onUpdate.Invoke;
+		}}
+	}}
+	/// <summary>
+	/// Indexed reference into a {1}Multi, with a built-in UnityEvent.
+	/// For read-only access make a reference to {1}MultiRef.
+	/// UnityEvent disabled by default. If enabled, remember to disable at end of life.
+	/// </summary>
+	[System.Serializable]
+	public class {1}MultiWriter : SmartDataMultiRefWriter<{1}Multi, {0}, {1}Var> {{
+		public static implicit operator {0}({1}MultiWriter r){{
+            return r.value;
+		}}
+		
+		[SerializeField]
+		Data.{1}Var.{1}Event _onUpdate;
+		
+		protected override System.Action<{0}> GetUnityEventInvoke(){{
+			return _onUpdate.Invoke;
+		}}
+		protected sealed override void InvokeUnityEvent({0} value){{
+			_onUpdate.Invoke(value);
+		}}
+	}}
+}}

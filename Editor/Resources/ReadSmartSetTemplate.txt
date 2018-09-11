@@ -1,0 +1,12 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using SmartData.Abstract;
+
+namespace SmartData.Smart{1}.Components {{
+	/// <summary>
+	/// Automatically listens to a <cref>Smart{1}Set</cref> and fires a <cref>UnityEvent<{0}></cref> when data changes.
+	/// </summary>
+	[AddComponentMenu("SmartData/{2}/Read Smart {2} Set", 2)]
+	public class ReadSmart{1}Set : ReadSmartBase<{1}SetReader> {{}}
+}}

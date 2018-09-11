@@ -1,0 +1,12 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using SmartData.Abstract;
+
+namespace SmartData.Smart{1}.Components {{
+	/// <summary>
+	/// Serialised write access to a Smart{1}Set.
+	/// </summary>
+	[AddComponentMenu("SmartData/{2}/Write Smart {2} Set", 3)]
+	public class WriteSmart{1}Set : WriteSetBase<{0}, {1}SetWriter> {{}}
+}}

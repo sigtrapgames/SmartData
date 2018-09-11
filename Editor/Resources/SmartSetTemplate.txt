@@ -1,0 +1,77 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Events;
+using SmartData.Smart{1}.Data;
+using SmartData.Abstract;
+using SmartData.Interfaces;
+using Sigtrap.Relays;
+
+namespace SmartData.Smart{1}.Data {{
+	/// <summary>
+	/// ScriptableObject data set which fires a Relay on data addition/removal.
+	/// <summary>
+	[CreateAssetMenu(menuName="SmartData/{2}/{2} Set", order=2)]
+	public class {1}Set : SmartSet<{0}>, ISmartDataSet<{0}> {{
+		#if UNITY_EDITOR
+		const string VALUETYPE = "{0}";
+		const string DISPLAYTYPE = "{2} Set";
+		#endif
+	}}
+}}
+
+namespace SmartData.Smart{1} {{
+	/// <summary>
+	/// Read-only access to {1}Set or List<0>, with built-in UnityEvent.
+	/// For write access make a {1}SetWriter reference.
+	/// UnityEvent disabled by default. If enabled, remember to disable at end of life.
+	/// </summary>
+	[System.Serializable]
+	public class {1}SetReader : SmartSetRefBase<{0}, {1}Set>, ISmartSetRefReader<{0}> {{
+		[SerializeField]
+		Data.{1}Var.{1}Event _onAdd;
+		[SerializeField]
+		Data.{1}Var.{1}Event _onRemove;
+		
+		protected override System.Action<{0}, bool> GetUnityEventInvoke(){{
+			return (e,a)=>{{
+				if (a){{
+					_onAdd.Invoke(e);
+				}} else {{
+					_onRemove.Invoke(e);
+				}}
+			}};
+		}}
+	}}
+	/// <summary>
+	/// Write access to {1}Set or List<{0}>, with built-in UnityEvent.
+	/// For read-only access make a {1}SetRef reference.
+	/// UnityEvent disabled by default. If enabled, remember to disable at end of life.
+	/// </summary>
+	[System.Serializable]
+	public class {1}SetWriter : SmartSetRefWriterBase<{0}, {1}Set>, ISmartSetRefReader<{0}> {{
+		[SerializeField]
+		Data.{1}Var.{1}Event _onAdd;
+		[SerializeField]
+		Data.{1}Var.{1}Event _onRemove;
+		
+		protected override System.Action<{0}, bool> GetUnityEventInvoke(){{
+			return (e,a)=>{{
+				if (a){{
+					_onAdd.Invoke(e);
+				}} else {{
+					_onRemove.Invoke(e);
+				}}
+			}};
+		}}
+		
+		protected sealed override void InvokeUnityEvent({0} value, bool added){{
+			if (added){{
+				_onAdd.Invoke(value);
+			}} else {{
+				_onRemove.Invoke(value);
+			}}
+		}}
+		
+	}}
+}}

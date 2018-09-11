@@ -1,0 +1,61 @@
+// SMARTTYPE {0}
+// Do not move or delete the above line
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Events;
+using SmartData.Smart{1}.Data;
+using SmartData.Abstract;
+using SmartData.Interfaces;
+using Sigtrap.Relays;
+
+namespace SmartData.Smart{1}.Data {{
+	/// <summary>
+	/// ScriptableObject data which fires a Relay on data change.
+	/// <summary>
+	[CreateAssetMenu(menuName="SmartData/{2}/{2} Variable", order=0)]
+	public partial class {1}Var : SmartVar<{0}>, ISmartVar<{0}> {{	// partial to allow overrides that don't get overwritten on regeneration
+		#if UNITY_EDITOR
+		const string VALUETYPE = "{0}";
+		const string DISPLAYTYPE = "{2}";
+		#endif
+
+		[System.Serializable]
+		public class {1}Event : UnityEvent<{0}>{{}}
+	}}
+}}
+
+namespace SmartData.Smart{1} {{
+	/// <summary>
+	/// Read-only access to Smart{1} or {0}, with built-in UnityEvent.
+	/// For write access make a {1}RefWriter reference.
+	/// UnityEvent disabled by default. If enabled, remember to disable at end of life.
+	/// </summary>
+	[System.Serializable]
+	public class {1}Reader : SmartDataRefBase<{0}, {1}Var, {1}Const, {1}Multi> {{
+		[SerializeField]
+		Data.{1}Var.{1}Event _onUpdate;
+		
+		protected sealed override System.Action<{0}> GetUnityEventInvoke(){{
+			return _onUpdate.Invoke;
+		}}
+	}}
+	/// <summary>
+	/// Write access to Smart{1}Writer or {0}, with built-in UnityEvent.
+	/// For read-only access make a {1}Ref reference.
+	/// UnityEvent disabled by default. If enabled, remember to disable at end of life.
+	/// </summary>
+	[System.Serializable]
+	public class {1}Writer : SmartDataRefWriter<{0}, {1}Var, {1}Const, {1}Multi> {{
+		[SerializeField]
+		Data.{1}Var.{1}Event _onUpdate;
+		
+		protected sealed override System.Action<{0}> GetUnityEventInvoke(){{
+			return _onUpdate.Invoke;
+		}}
+		protected sealed override void InvokeUnityEvent({0} value){{
+			_onUpdate.Invoke(value);
+		}}
+	}}
+}}

@@ -1,0 +1,18 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using SmartData.Abstract;
+using SmartData.Interfaces;
+
+namespace SmartData.Smart{1}.Data {{
+	/// <summary>
+	/// ScriptableObject constant {0}.
+	/// </summary>
+	[CreateAssetMenu(menuName="SmartData/{2}/{2} Const", order=3)]
+	public class {1}Const : SmartConst<{0}>, ISmartConst<{0}> {{
+		#if UNITY_EDITOR
+		const string VALUETYPE = "{0}";
+		const string DISPLAYTYPE = "{2} Const";
+		#endif
+	}}
+}}
