@@ -119,7 +119,7 @@ SmartGraph developed by Luca Mefisto ([@LucaMefisto](https://twitter.com/LucaMef
 
 ## Acknowledgements
 *SmartData*, as previously mentioned, owes its existence and inspiration to Ryan Hipple (see above)  
-Development assistance, feedback and ideas provided by Eric Provencher ([@prvncher](https://twitter.com/prvncher) | [github](https://github.com/provencher)) and Dustin Chertoff ([@FearlessVR](https://twitter.com/fearlessvr) | [github](https://github.com/delphinius81))
+Development assistance, feedback and ideas provided by Eric Provencher ([@prvncher](https://twitter.com/prvncher) | [github](https://github.com/provencher)) and Dustin Chertoff ([@dbchertoff](https://twitter.com/dbchertoff) | [github](https://github.com/delphinius81))
 
 
 ### Footnotes
