@@ -40,13 +40,21 @@ namespace SmartData.Editors {
 				bool guiChanged = GUI.changed;
 				GUI.changed = false;
 				EditorGUI.BeginChangeCheck();
-				EditorGUILayout.PropertyField(_rtValue, true);
-				if (EditorGUI.EndChangeCheck()){
-					serializedObject.ApplyModifiedProperties();
-					_updateRtValue.Invoke(target, null);
-					serializedObject.UpdateIfRequiredOrScript();
-				}
 
+				// Handle scene objects being serialised (not supported in ScriptableObjects due to conflicting scope)
+				// TODO try to fake this with a custom property field
+				var rtv = _rtValue.objectReferenceValue;
+				if (rtv != null && _rtValue.objectReferenceInstanceIDValue > 0){
+					EditorGUILayout.BeginHorizontal(); {
+						EditorGUILayout.LabelField(new GUIContent(ObjectNames.NicifyVariableName(_rtValue.name), _rtValue.tooltip), GUILayout.Width(EditorGUIUtility.labelWidth));
+						if (GUILayout.Button(rtv.name)){
+							EditorGUIUtility.PingObject(rtv);
+						}
+					} EditorGUILayout.EndHorizontal();
+					EditorGUILayout.HelpBox("Scene GameObjects cannot be serialized in ScriptableObjects.\nThis is only cosmetic - the reference still exists in code.", MessageType.Warning);
+				} else {
+					EditorGUILayout.PropertyField(_rtValue, true);
+				}
 				GUI.changed = guiChanged;
 			}
 
