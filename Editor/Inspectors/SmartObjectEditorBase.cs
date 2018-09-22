@@ -6,12 +6,7 @@ using System.Reflection;
 using SmartData.Abstract;
 
 namespace SmartData.Editors {
-	public abstract class SmartObjectEditorBase : Editor {
-		#region Consts
-
-		
-		#endregion
-		
+	public abstract class SmartObjectEditorBase : Editor {		
 		string _typeName;
 		string _displayType;
 		string _valueType;
@@ -23,6 +18,12 @@ namespace SmartData.Editors {
 		protected FieldInfo _getRelay;
 		protected FieldInfo _getListeners;
 		protected PropertyInfo _getListenerCount;
+		protected MethodInfo _dispatch;
+
+		protected MethodInfo GetDispatchMethod(object o){
+			return o.GetType().GetMethod("Dispatch", BindingFlags.Instance | BindingFlags.Public);
+		}
+
 		GUIStyle __gsFoldout;
 		protected GUIStyle _gsFoldout {
 			get {
@@ -82,6 +83,8 @@ namespace SmartData.Editors {
 				_getListeners = _getRelay.FieldType.GetField("_listeners", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
 				_isOnRestoreOverridden = IsOnRestoreOverridden(target.GetType());
 			}
+
+			_dispatch = GetDispatchMethod(target);
 
 			_decoratorTypes.Clear();
 
