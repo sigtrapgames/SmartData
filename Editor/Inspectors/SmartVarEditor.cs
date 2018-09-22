@@ -43,7 +43,7 @@ namespace SmartData.Editors {
 
 				// Handle scene objects being serialised (not supported in ScriptableObjects due to conflicting scope)
 				// TODO try to fake this with a custom property field
-				if (_rtValue.propertyType == SerializedPropertyType.ObjectReference && _rtValue.objectReferenceValue != null && _rtValue.objectReferenceInstanceIDValue > 0){
+				if (_rtValue.propertyType == SerializedPropertyType.ObjectReference && _rtValue.objectReferenceValue != null && !EditorUtility.IsPersistent(_rtValue.objectReferenceValue)){
 					var rtv = _rtValue.objectReferenceValue;
 					EditorGUILayout.BeginHorizontal(); {
 						EditorGUILayout.LabelField(new GUIContent(ObjectNames.NicifyVariableName(_rtValue.name), _rtValue.tooltip), GUILayout.Width(EditorGUIUtility.labelWidth));
