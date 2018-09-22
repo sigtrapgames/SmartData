@@ -120,11 +120,11 @@ namespace SmartData.Editors {
 				--EditorGUI.indentLevel;
 
 				EditorGUILayout.Space();
-				if (GUILayout.Button("Dispatch")){
+				if (GUILayout.Button("Dispatch All")){
 					for (int i=0; i<c; ++i){
 						_args[0] = i;
 						object element = _getElement.Invoke(multi, _args);
-						SmartVarEditor.dispatch.Invoke(element, null);
+						GetDispatchMethod(element).Invoke(element, null);
 					}
 				}
 			}

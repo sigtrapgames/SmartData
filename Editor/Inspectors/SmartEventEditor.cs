@@ -9,18 +9,6 @@ using SmartData.Abstract;
 namespace SmartData.Editors {
 	[CustomEditor(typeof(EventVar), true)]
 	public class SmartEventEditor : SmartObjectEditorBase {
-		static MethodInfo _dispatch;
-
-		
-		public static MethodInfo dispatch {
-			get {
-				if (_dispatch == null){
-					_dispatch = typeof(SmartVarBase).GetMethod("_EDITOR_ForceDispatch", BindingFlags.Instance | BindingFlags.NonPublic);
-				}
-				return _dispatch;
-			}
-		}
-
 		FieldInfo _multiDecorators;
 
 		protected override void OnEnable(){
@@ -61,7 +49,7 @@ namespace SmartData.Editors {
 			if (Application.isPlaying){
 				EditorGUILayout.Space();
 				if (GUILayout.Button("Dispatch")){
-					dispatch.Invoke(target, null);
+					_dispatch.Invoke(target, null);
 				}
 				if (allowReset){
 					EditorGUILayout.Space();
