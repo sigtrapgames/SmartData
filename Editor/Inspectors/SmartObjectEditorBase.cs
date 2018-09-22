@@ -65,6 +65,7 @@ namespace SmartData.Editors {
 		#endregion
 
 		SmartEditorUtils.SmartObjectType _smartType;
+		protected System.Type _tData;
 		
 		protected virtual void OnEnable(){			
 			_typeName = target.GetType().Name;
@@ -86,8 +87,7 @@ namespace SmartData.Editors {
 			_decoratorTypes.Clear();
 
 			System.Type tDecBase = null;
-			System.Type tData;
-			_smartType = SmartEditorUtils.GetSmartObjectType(target as SmartBase, out tData);
+			_smartType = SmartEditorUtils.GetSmartObjectType(target as SmartBase, out _tData);
 			switch (_smartType){
 				case SmartEditorUtils.SmartObjectType.EVENT:
 				case SmartEditorUtils.SmartObjectType.EVENT_MULTI:
@@ -96,15 +96,15 @@ namespace SmartData.Editors {
 					break;
 				case SmartEditorUtils.SmartObjectType.VAR:
 				case SmartEditorUtils.SmartObjectType.MULTI:
-					tDecBase = typeof(SmartDataDecoratorBase<>).MakeGenericType(tData);
+					tDecBase = typeof(SmartDataDecoratorBase<>).MakeGenericType(_tData);
 					break;
 				case SmartEditorUtils.SmartObjectType.SET:
-					tDecBase = typeof(SmartSetDecoratorBase<>).MakeGenericType(tData);
+					tDecBase = typeof(SmartSetDecoratorBase<>).MakeGenericType(_tData);
 					break;
 			}
 
 			if (tDecBase != null){
-				if (tData == null){
+				if (_tData == null){
 					// Event
 					foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies()){
 						foreach (var t in a.GetTypes()){
@@ -127,7 +127,7 @@ namespace SmartData.Editors {
 
 								var gs = type.GetGenericArguments();
 								// Match type arg to SmartData asset
-								if (gs.Length == 1 && gs[0] == tData){
+								if (gs.Length == 1 && gs[0] == _tData){
 									_decoratorTypes.Add(t);
 								}
 							}
