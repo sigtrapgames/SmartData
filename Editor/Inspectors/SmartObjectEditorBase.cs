@@ -18,7 +18,6 @@ namespace SmartData.Editors {
 		protected FieldInfo _getRelay;
 		protected FieldInfo _getListeners;
 		protected PropertyInfo _getListenerCount;
-		protected MethodInfo _dispatch;
 
 		protected MethodInfo GetDispatchMethod(object o){
 			return o.GetType().GetMethod("Dispatch", BindingFlags.Instance | BindingFlags.Public);
@@ -84,8 +83,6 @@ namespace SmartData.Editors {
 				_getListeners = _getRelay.FieldType.GetField("_listeners", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
 				_isOnRestoreOverridden = IsOnRestoreOverridden(target.GetType());
 			}
-
-			_dispatch = GetDispatchMethod(target);
 
 			_decoratorTypes.Clear();
 

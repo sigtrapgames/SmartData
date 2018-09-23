@@ -48,10 +48,6 @@ namespace SmartData.Abstract {
 			SmartData.Editors.SmartDataRegistry.UnregisterSmart(this);
 			#endif
 		}
-
-		#if UNITY_EDITOR
-		protected virtual void _EDITOR_ForceDispatch(){}
-		#endif
 	}
 	/// <summary>
 	/// Abstract base class for all Smart types with modifiable data. Do not reference.
@@ -246,7 +242,6 @@ namespace SmartData.Abstract {
 		[SerializeField]
 		protected bool _resetOnSceneChange = false;
 
-		#if UNITY_EDITOR
 		public static DataType GetDataType(System.Type tData){
 			if (tData.IsValueType || tData == typeof(string) || tData.IsSubclassOf(typeof(string))){
 				return DataType.STRUCT;
@@ -260,18 +255,20 @@ namespace SmartData.Abstract {
 				return DataType.CLASS;
 			}
 		}
-		#endif
 	}
 
 	/// <summary>
 	/// Abstract base for SmartData classes. Do not reference. Will not serialize.
 	/// </summary>
 	public abstract class SmartVar<TData> : SmartVarBase, ISmartVar<TData> {
+		// Set in editor
 		[SerializeField]
 		protected DataType _dataType;
 		[SerializeField][Tooltip("Event will not be automatically fired if data changed from editor.")]
 		protected TData _value;
-		/// <summary>Separate copy of serialized value for non-destructive runtime use</summary>
+		/// <summary>
+		/// Separate copy of serialized value for non-destructive runtime use
+		/// </summary>
 		[SerializeField]
 		protected TData _runtimeValue;
 
@@ -323,12 +320,14 @@ namespace SmartData.Abstract {
 		protected override void OnEnable(){
 			base.OnEnable();
 
-			#if UNITY_EDITOR
 			// Set DataType for reset behaviour
-			DataType dt = GetDataType(typeof(TData));			
+			_dataType = GetDataType(typeof(TData));
+
+			#if UNITY_EDITOR
+			// Ensure serialization
 			var so = new UnityEditor.SerializedObject(this);
-			so.FindProperty("_dataType").intValue = (int)dt;
-			so.ApplyModifiedPropertiesWithoutUndo();
+			so.FindProperty("_dataType").intValue = (int)_dataType;
+			so.ApplyModifiedPropertiesWithoutUndo();			
 			#endif
 
 			UnityEngine.SceneManagement.SceneManager.activeSceneChanged += OnSceneChanged;
@@ -399,6 +398,9 @@ namespace SmartData.Abstract {
 		/// </summary>
 		public void Dispatch(){
 			_relay.Dispatch(value);
+			#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
+			SmartData.Editors.SmartDataRegistry.OnRefCallToSmart(null, this);
+			#endif
 		}
 		/// <summary>
 		/// Reset to initial serialized value. For reference and collection types, may not have desired effect.
@@ -436,12 +438,6 @@ namespace SmartData.Abstract {
 		#if UNITY_EDITOR
 		void _EDITOR_UpdateRtValue(){
 			value = value;
-		}
-		protected override void _EDITOR_ForceDispatch(){
-			_relay.Dispatch(_runtimeValue);
-			#if !SMARTDATA_NO_GRAPH_HOOKS
-			SmartData.Editors.SmartDataRegistry.OnRefCallToSmart(null, this);
-			#endif
 		}
 		#endif
 	}

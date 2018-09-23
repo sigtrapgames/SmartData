@@ -34,6 +34,9 @@ namespace SmartData.SmartEvent.Data {
 		/// <summary> Fire event. </summary>
 		public void Dispatch(){
 			_relay.Dispatch();
+			#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
+			SmartData.Editors.SmartDataRegistry.OnRefCallToSmart(null, this);
+			#endif
 		}
 	}
 }

@@ -49,7 +49,7 @@ namespace SmartData.Editors {
 			if (Application.isPlaying){
 				EditorGUILayout.Space();
 				if (GUILayout.Button("Dispatch")){
-					_dispatch.Invoke(target, null);
+					GetDispatchMethod(target).Invoke(target, null);
 				}
 				if (allowReset){
 					EditorGUILayout.Space();

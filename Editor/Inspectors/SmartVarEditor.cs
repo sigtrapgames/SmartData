@@ -14,7 +14,6 @@ namespace SmartData.Editors {
 		MethodInfo _updateRtValue;
 		MethodInfo _hasPersistent;
 
-
 		protected override void OnEnable(){
 			base.OnEnable();
 			_rtValue = serializedObject.FindProperty("_runtimeValue");
@@ -54,6 +53,11 @@ namespace SmartData.Editors {
 					EditorGUILayout.HelpBox("Scene GameObjects cannot be serialized in ScriptableObjects.\nThis is only cosmetic - the reference still exists in code.", MessageType.Warning);
 				} else {
 					EditorGUILayout.PropertyField(_rtValue, true);
+				}
+
+				if (EditorGUI.EndChangeCheck()){
+					serializedObject.ApplyModifiedProperties();
+					_updateRtValue.Invoke(target, null);
 				}
 				GUI.changed = guiChanged;
 			}
