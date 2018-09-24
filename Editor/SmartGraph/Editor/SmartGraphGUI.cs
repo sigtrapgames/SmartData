@@ -128,7 +128,7 @@ namespace SmartData.Graph
                 if (hasNotes && ng.runtimeInstance.Outputs[i].ShowNotes){
                     EditorGUILayout.BeginHorizontal();
                     GUILayout.Space(18);
-                    GUILayout.Label(ng.runtimeInstance.Outputs[i].Notes, noteIn);
+                    GUILayout.Label(ng.runtimeInstance.Outputs[i].Notes, noteOut);
                     GUILayout.Space(5);
                     EditorGUILayout.EndHorizontal();
                 }
