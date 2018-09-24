@@ -52,7 +52,15 @@ namespace SmartData.Editors {
 					} EditorGUILayout.EndHorizontal();
 					EditorGUILayout.HelpBox("Scene GameObjects cannot be serialized in ScriptableObjects.\nThis is only cosmetic - the reference still exists in code.", MessageType.Warning);
 				} else {
-					EditorGUILayout.PropertyField(_rtValue, true);
+					EditorGUILayout.BeginHorizontal(); {
+						EditorGUILayout.PropertyField(_rtValue, true);
+						if (GUILayout.Button("Save", EditorStyles.miniButton, GUILayout.Width(40))){
+							var val = target.GetType().GetFieldPrivate("_runtimeValue", BindingFlags.Instance).GetValue(target);
+							target.GetType().GetFieldPrivate("_value", BindingFlags.Instance).SetValue(target, val);
+							serializedObject.UpdateIfRequiredOrScript();
+							serializedObject.ApplyModifiedProperties();
+						}
+					} EditorGUILayout.EndHorizontal();
 				}
 
 				if (EditorGUI.EndChangeCheck()){
