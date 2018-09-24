@@ -91,6 +91,11 @@ namespace SmartData.Graph
             GUIStyle pinIn = new GUIStyle(Styles.triggerPinIn);
             GUIStyle pinOut = new GUIStyle(Styles.triggerPinOut);
             pinIn.fontSize = pinOut.fontSize = 11;
+            GUIStyle noteIn = new GUIStyle();
+            noteIn.fontSize = 10;
+            GUIStyle noteOut = new GUIStyle(noteIn);
+            noteOut.alignment = TextAnchor.MiddleRight;
+            
 
             foreach (var slot in node.inputSlots)
 			{
@@ -100,17 +105,54 @@ namespace SmartData.Graph
 
             node.NodeUI(this);
 
+            int i=0;
             foreach (var slot in node.outputSlots)
             {
+                bool hasNotes = !string.IsNullOrEmpty(ng.runtimeInstance.Outputs[i].Notes);
+
                 EditorGUILayout.BeginHorizontal();
-                GUILayout.Space(5); // Minimum left padding
-                GUILayout.FlexibleSpace();
-                LayoutSlot(slot, slot.title, true, false, true, pinOut);
+                {
+                    GUILayout.Space(5); // Minimum left padding
+                    
+                    if (hasNotes){
+                        ng.runtimeInstance.Outputs[i].ShowNotes = EditorGUILayout.Foldout(ng.runtimeInstance.Outputs[i].ShowNotes, "");
+                    } else {
+                        GUILayout.FlexibleSpace();
+                    }
+                    
+                    LayoutSlot(slot, slot.title, true, false, true, pinOut);
+                }
                 EditorGUILayout.EndHorizontal();
+
+                // Draw notes
+                if (hasNotes && ng.runtimeInstance.Outputs[i].ShowNotes){
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Space(18);
+                    GUILayout.Label(ng.runtimeInstance.Outputs[i].Notes, noteIn);
+                    GUILayout.Space(5);
+                    EditorGUILayout.EndHorizontal();
+                }
+
                 GUILayout.Space(4); // Bottom padding
+
+                ++i;
 			}
 
             GUILayout.Space(1);
+
+            var description = ng.runtimeInstance.Description;
+            if (!string.IsNullOrEmpty(description))
+            {
+                ng.runtimeInstance.ShowDescription = EditorGUILayout.Foldout(ng.runtimeInstance.ShowDescription, ng.runtimeInstance.IsSmartObject ? "Description" : "Notes");
+                if (ng.runtimeInstance.ShowDescription)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Space(18);
+                    GUILayout.Label(description, noteIn);
+                    EditorGUILayout.EndHorizontal();
+                }
+                GUILayout.Space(1);
+            }
 
 			DragNodes();
 

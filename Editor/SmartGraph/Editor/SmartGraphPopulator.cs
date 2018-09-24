@@ -45,12 +45,13 @@ namespace SmartData.Graph
 					Component owner = (Component)r.Value.GetFieldPrivate("_owner", binding).GetValue(target);
 				
 					try {
+						string notes = (string)(target.GetType().GetFieldPrivate("_notes", BindingFlags.Instance).GetValue(target));
 						calls.Add(
 							new SmartGraphConnection(
 								owner.gameObject,
 								smart, target,
 								string.Format("{0}::{1}", owner.GetType().Name, ((string)r.Value.GetFieldPrivate("_propertyPath", binding).GetValue(target)).Replace(".Array.data","")),
-								recMeta, null, !writeable, false
+								recMeta, null, !writeable, false, notes
 							)
 						);
 					#pragma warning disable 0168
@@ -83,7 +84,7 @@ namespace SmartData.Graph
 									rec, 
 									null,
 									string.Format("[{0}]", i),
-									string.Format("Multi[{0}]", i), null, false, false
+									string.Format("Multi[{0}]", i), null, false, false, null
 								)
 							);
 							++i;

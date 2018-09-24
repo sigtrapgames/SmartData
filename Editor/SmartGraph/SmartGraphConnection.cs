@@ -22,6 +22,8 @@ namespace SmartData.Graph
 		public string ReceiverComponentName { get; private set; }
 		public bool ReadOnly { get; private set; }
 		public bool UseFullMethodPath { get; private set; }
+		public string Notes { get; private set; }
+		public bool ShowNotes;
 
 		public string MethodFullPath
 		{
@@ -48,14 +50,16 @@ namespace SmartData.Graph
 			string methodName,
 			UnityEventBase unityEvent,
 			bool readOnly = true,
-			bool useFullMethodPath = true)
-		{
+			bool useFullMethodPath = true,
+			string notes = null
+		){
 			Sender = sender as Component ? (sender as Component).gameObject : sender;
 			Receiver = receiver as Component ? (receiver as Component).gameObject : receiver;
 			EventName = eventName;
 			Method = methodName;
 			ReadOnly = readOnly;
 			UseFullMethodPath = useFullMethodPath;
+			Notes = notes;
 
 			if (smartref != null){
 				CallType = EventCallType.REF_TO_SMART;

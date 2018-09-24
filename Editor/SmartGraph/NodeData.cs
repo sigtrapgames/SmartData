@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using System.Reflection;
 
 namespace SmartData.Graph
 {
@@ -16,6 +17,8 @@ namespace SmartData.Graph
         public Object Entity { get; private set; }
         public string EntityType {get; private set;}
         public bool IsSmartObject {get; private set;}
+        public string Description {get; private set;}
+        public bool ShowDescription;
 		
 		public NodeType Behaviour { get; private set; }
 
@@ -40,6 +43,9 @@ namespace SmartData.Graph
             EntityType = Entity.GetType().Name;
             System.Type tData;
             IsSmartObject = Editors.SmartEditorUtils.GetSmartObjectType(Entity.GetType(), out tData) != Editors.SmartEditorUtils.SmartObjectType.NONE;
+            if (IsSmartObject){
+                Description = (string)(Entity.GetType().GetFieldPrivate("_description", BindingFlags.Instance).GetValue(Entity));
+            }
 		}
 
 
