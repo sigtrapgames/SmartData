@@ -9,6 +9,7 @@ namespace SmartData.Editors {
 	public abstract class SmartRefPropertyDrawerBase : PropertyDrawer {
 		protected const int SPACING = 2;
 		bool _showEvent;
+		protected bool _showNotes {get; private set;}
 		bool _forceExpand;
 
 		public sealed override void OnGUI(Rect position, SerializedProperty property, GUIContent label){
@@ -58,13 +59,16 @@ namespace SmartData.Editors {
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label){
 			float bph = BasePropertyHeight(property, label);
+			if (_showNotes){
+				return 4*bph + (2*EditorGUIUtility.standardVerticalSpacing);
+			}
 			SerializedProperty e0, e1;
 			GetEvents(property, out e0, out e1);
 			if (e0 != null){
 				if (_forceExpand || _showEvent){
 					return GetEventHeight(e0) + GetEventHeight(e1) + bph + SPACING + 5;
 				}
-				return 2*bph;
+				return 2*bph+EditorGUIUtility.standardVerticalSpacing;
 			}
 			return bph;
 		}
@@ -89,7 +93,30 @@ namespace SmartData.Editors {
 			// 42px per listener + header + [+/-]
 			return (listeners * 43) + 18 + (includeFooter ? 20 : 0);
 		}
-		protected void DrawEvent(SerializedProperty property, Rect position, Vector2 min, Vector2 max, bool forceExpand){
+		protected bool DrawNotes(SerializedProperty property, Rect position, Vector2 min, Vector2 max){
+			Rect btnPos = position;
+			btnPos = new Rect(btnPos.xMax-68, btnPos.yMax+EditorGUIUtility.standardVerticalSpacing, 50, btnPos.height);
+			
+			if (GUI.Button(btnPos, _showNotes ? "Done" : "Notes", EditorStyles.miniButton)){
+				_showNotes = !_showNotes;
+			}
+
+			if (_showNotes){
+				var n = property.FindPropertyRelative("_notes");
+				EditorGUI.indentLevel+=2;
+				Rect notesPos = new Rect(position.x+SmartEditorUtils.indent, btnPos.yMax+EditorGUIUtility.standardVerticalSpacing, position.width-SmartEditorUtils.indent-18, position.height*2);
+				n.stringValue = EditorGUI.TextArea(notesPos, n.stringValue);
+				EditorGUI.indentLevel-=2;
+				_showEvent = false;
+			}
+
+			return _showNotes;
+		}
+		/// <summary>
+		/// Draw event(s). Returns number of events drawn.
+		/// </summary>
+		protected int DrawEvent(SerializedProperty property, Rect position, Vector2 min, Vector2 max, bool forceExpand){
+			int result = 0;
 			SerializedProperty e0, e1;
 			GetEvents(property, out e0, out e1);
 			if (e0 != null){
@@ -115,9 +142,11 @@ namespace SmartData.Editors {
 					evtPos.yMin = position.max.y+SPACING;
 				}
 				if (_showEvent){
+					++result;
 					evtPos.height = GetEventHeight(e0);
 					EditorGUI.PropertyField(evtPos, e0);
 					if (e1 != null){
+						++result;
 						evtPos = new Rect(evtPos.xMin, evtPos.yMin+evtPos.height+EditorGUIUtility.standardVerticalSpacing, evtPos.width, GetEventHeight(e1));
 						//evtPos.yMin = evtPos.yMax + EditorGUIUtility.standardVerticalSpacing;
 						EditorGUI.PropertyField(evtPos, e1);
@@ -174,6 +203,11 @@ namespace SmartData.Editors {
 					}
 				}
 			}
+
+			if (result > 0){
+				_showNotes = false;
+			}
+			return result;
 		}
 		protected void GetSmartFieldRects(SerializedProperty p, GUIContent l, Vector2 max, ref Rect fieldPos, out Rect rwPos, out Rect prePos, bool popup, bool usePre){
 			prePos = new Rect();

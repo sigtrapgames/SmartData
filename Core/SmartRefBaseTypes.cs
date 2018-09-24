@@ -28,6 +28,8 @@ namespace SmartData.Abstract {
 		string _propertyPath;
 		[SerializeField]
 		protected bool _autoListen = false;
+		[SerializeField]
+		private string _notes;
 
 		public abstract bool isValid {get;}
 		/// <summary>

@@ -112,11 +112,16 @@ namespace SmartData.Editors {
 					break;
 				}
 			}
+			int eventsDrawn = 0;
 			if (eventable){
-				if (IsForceHideEvent(property, fieldInfo)) return;
-				DrawEvent(property, evtPos, min, max, forceExpand);
+				//if (IsForceHideEvent(property, fieldInfo) || _showNotes) return;
+				eventsDrawn = DrawEvent(property, evtPos, min, max, forceExpand);
 			} else if (forceEventable){
 				rtProp.intValue = (int)SmartDataRefBase.RefType.VAR;
+			}
+
+			if (eventsDrawn == 0){
+				DrawNotes(property, evtPos, min, max);
 			}
 		}
 	}
