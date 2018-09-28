@@ -47,9 +47,9 @@ namespace SmartData.Graph
 
 
 		[SerializeField]
-        private static Dictionary<Object, NodeData> nodes = new Dictionary<Object, NodeData>();
+		private static Dictionary<int, NodeData> nodes = new Dictionary<int, NodeData>();
 
-        public static ICollection<NodeData> Nodes
+		public static ICollection<NodeData> Nodes
         {
             get
             {
@@ -57,26 +57,28 @@ namespace SmartData.Graph
             }
         }
 
-        public static void Clear() 
-        {
-            nodes.Clear();
-        }
-        
-        public static void RegisterEvent(SmartGraphConnection eventCall)
+		public static void ClearAll()
+		{
+			nodes.Clear();
+		}
+		
+		public static void RegisterEvent(SmartGraphConnection eventCall)
         {
 			CreateNode(eventCall.Sender);
             CreateNode(eventCall.Receiver);
 
-            nodes[eventCall.Sender].Outputs.Add(eventCall);
-            nodes[eventCall.Receiver].Inputs.Add(eventCall);
+            nodes[eventCall.Sender.GetInstanceID()].Outputs.Add(eventCall);
+            nodes[eventCall.Receiver.GetInstanceID()].Inputs.Add(eventCall);
         }
 
 
         private static void CreateNode(Object entity)
         {
-            if(!nodes.ContainsKey(entity))
-            {
-                nodes.Add(entity, new NodeData(entity, NodeTypeForObject(entity)));
+			int id = entity.GetInstanceID();
+
+			if (!nodes.ContainsKey(id))
+			{ 
+				nodes.Add(id, new NodeData(entity, NodeTypeForObject(entity)));
             }
 		}
 

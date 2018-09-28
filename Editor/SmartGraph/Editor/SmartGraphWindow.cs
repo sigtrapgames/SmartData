@@ -32,27 +32,20 @@ namespace SmartData.Graph
 		public void Initialize()
 		{
 			_graph = SmartGraph.Create();
-			_graph.BuildGraph();
+			_graph.RebuildGraph();
 
 			_graphGUI = _graph.GetEditor();
 			_graphGUI.CenterGraph();
 
 			EditorUtility.SetDirty(_graphGUI);
 			EditorUtility.SetDirty(_graph);
-
-			_initialised = true;
 		}
-		
+
 		void OnGUI()
 		{
-			// In case we start with the window open
-			if (!_initialised){
-				Initialize();
-			}
-
 			var width = position.width;
 			var height = position.height;
-			_zoomArea = new Rect(0, 0, width, height - kBarHeight);
+			_zoomArea = new Rect(0, 0, width, height);
 			HandleEvents();
 
 			if (_graphGUI != null)
@@ -60,7 +53,6 @@ namespace SmartData.Graph
 				Rect r = EditorZoomArea.Begin(_zoom, _zoomArea);
 				// Main graph area
 				_graphGUI.BeginGraphGUI(this, r);
-				_graphGUI.zoomLevel = _zoom;
 				_graphGUI.OnGraphGUI();
 				_graphGUI.EndGraphGUI();
 
@@ -75,10 +67,16 @@ namespace SmartData.Graph
 
 
 			// Status bar
-			GUILayout.BeginArea(new Rect(0, height - kBarHeight, width, kBarHeight));
-			if (GUILayout.Button("Refresh"))
+			GUILayout.BeginArea(new Rect(0, 0, width, kBarHeight + 5));
+			string[] toolbarStrings = new string[] { "Update connections", "Clear" };
+			int result = GUILayout.Toolbar(-1, toolbarStrings);
+			if (result == 0)
 			{
-				Refresh();
+				RefreshGraphConnections();
+			}
+			else if (result == 1)
+			{
+				RebuildGraph();
 			}
 			GUILayout.EndArea();
 
@@ -92,17 +90,8 @@ namespace SmartData.Graph
 			}
 		}
 
-		private void OnDestroy()
-		{
-
-			SmartData.Editors.SmartDataRegistry.graphIsOpen = false;
-		}
-
 		public void OverrideSelection(int overrideIndex)
 		{
-			if (_graphGUI == null){
-				ShowEditor();
-			}
 			_graphGUI.SelectionOverride = overrideIndex;
 		}
 
@@ -129,18 +118,22 @@ namespace SmartData.Graph
 			}
 		}
 
-		void Refresh()
+		void RebuildGraph()
 		{
-			SmartData.Editors.SmartDataRegistry.graphIsOpen = true;
 			if (_graph != null)
 			{
-				_graph.Clear();
-				_graph.BuildGraph();
+				_graph.RebuildGraph();
+			}
+		}
+		void RefreshGraphConnections()
+		{
+			if (_graph != null)
+			{
+				_graph.RefreshGraphConnections();
 			}
 		}
 	}
 }
-
 
 
 public static class RectExtensions
