@@ -36,7 +36,8 @@ namespace SmartData.Editors {
 			if (IsForceHideEvent(property, fieldInfo)) return;
 			bool forceExpand;
 			IsForceEventable(property, fieldInfo, out forceExpand);
-			DrawEvent(property, fieldPos, min, max, forceExpand);
+			
+			DrawSecondary(property, position, fieldPos, min, max, true, IsWriteable(property, fieldInfo), forceExpand);
 		}
 	}
 }

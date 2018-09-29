@@ -110,6 +110,24 @@ namespace SmartData.Editors {
 
 			GUI.enabled = ge;
 		}
+		protected void DrawSecondary(SerializedProperty property, Rect position, Rect fieldPos, Vector2 min, Vector2 max, bool eventable, bool writeable, bool forceExpand){
+			Rect evtPos = position;
+			evtPos.yMin = fieldPos.min.y;
+			evtPos.height = fieldPos.height;
+
+			int eventsDrawn = 0;
+			if (eventable){
+				//if (IsForceHideEvent(property, fieldInfo) || _showNotes) return;
+				eventsDrawn = DrawEvent(property, evtPos, min, max, forceExpand);
+			}
+
+			if (eventsDrawn == 0){
+				if (eventable && IsWriteable(property, fieldInfo)){
+					DrawDispatchBtn(property, evtPos, min, max);
+				}
+				DrawNotes(property, evtPos, min, max);
+			}
+		}
 		protected bool DrawNotes(SerializedProperty property, Rect position, Vector2 min, Vector2 max){
 			Rect btnPos = position;
 			btnPos = new Rect(btnPos.xMax-(NOTES_BTN_WIDTH+18), btnPos.yMax+EditorGUIUtility.standardVerticalSpacing, NOTES_BTN_WIDTH, btnPos.height);

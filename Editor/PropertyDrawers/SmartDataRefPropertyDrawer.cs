@@ -81,10 +81,10 @@ namespace SmartData.Editors {
 			// Prep rects
 			Rect popPos, rwPos;
 			GetSmartFieldRects(property, label, max, ref fieldPos, out rwPos, out popPos, true, true);
-			
-			Rect evtPos = position;
-			evtPos.yMin = fieldPos.min.y;
-			evtPos.height = fieldPos.height;
+
+			if (forceEventable){
+				rtProp.intValue = (int)SmartData.Abstract.SmartDataRefBase.RefType.VAR;
+			}
 
 			// Select type
 			GUI.enabled = !Application.isPlaying;
@@ -112,20 +112,8 @@ namespace SmartData.Editors {
 					break;
 				}
 			}
-			int eventsDrawn = 0;
-			if (eventable){
-				//if (IsForceHideEvent(property, fieldInfo) || _showNotes) return;
-				eventsDrawn = DrawEvent(property, evtPos, min, max, forceExpand);
-			} else if (forceEventable){
-				rtProp.intValue = (int)SmartDataRefBase.RefType.VAR;
-			}
 
-			if (eventsDrawn == 0){
-				if (eventable && IsWriteable(property, fieldInfo)){
-					DrawDispatchBtn(property, evtPos, min, max);
-				}
-				DrawNotes(property, evtPos, min, max);
-			}
+			DrawSecondary(property, position, fieldPos, min, max, eventable, IsWriteable(property, fieldInfo), forceExpand);
 		}
 	}
 }
