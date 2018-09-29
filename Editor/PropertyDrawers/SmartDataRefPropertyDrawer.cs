@@ -121,6 +121,9 @@ namespace SmartData.Editors {
 			}
 
 			if (eventsDrawn == 0){
+				if (eventable && IsWriteable(property, fieldInfo)){
+					DrawDispatchBtn(property, evtPos, min, max);
+				}
 				DrawNotes(property, evtPos, min, max);
 			}
 		}

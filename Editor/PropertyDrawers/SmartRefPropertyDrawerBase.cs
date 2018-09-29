@@ -8,6 +8,8 @@ using System.Linq;
 namespace SmartData.Editors {
 	public abstract class SmartRefPropertyDrawerBase : PropertyDrawer {
 		protected const int SPACING = 2;
+		protected const int NOTES_BTN_WIDTH = 50;
+		protected const int DISPATCH_BTN_WIDTH = 60;
 		bool _showEvent;
 		protected bool _showNotes {get; private set;}
 		bool _forceExpand;
@@ -93,9 +95,24 @@ namespace SmartData.Editors {
 			// 42px per listener + header + [+/-]
 			return (listeners * 43) + 18 + (includeFooter ? 20 : 0);
 		}
+		protected void DrawDispatchBtn(SerializedProperty p, Rect position, Vector2 min, Vector3 max){
+			bool ge = GUI.enabled;
+			GUI.enabled = Application.isPlaying;
+
+			Rect btnPos = position;
+			btnPos = new Rect(btnPos.xMax-(DISPATCH_BTN_WIDTH+NOTES_BTN_WIDTH+SPACING+18), btnPos.yMax+EditorGUIUtility.standardVerticalSpacing, DISPATCH_BTN_WIDTH, btnPos.height);
+
+			if (GUI.Button(btnPos, "Dispatch", EditorStyles.miniButton)){
+				// Dispatch
+				var d = fieldInfo.FieldType.GetMethod("Dispatch", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+				d.Invoke(p.GetObject(), null);
+			}
+
+			GUI.enabled = ge;
+		}
 		protected bool DrawNotes(SerializedProperty property, Rect position, Vector2 min, Vector2 max){
 			Rect btnPos = position;
-			btnPos = new Rect(btnPos.xMax-68, btnPos.yMax+EditorGUIUtility.standardVerticalSpacing, 50, btnPos.height);
+			btnPos = new Rect(btnPos.xMax-(NOTES_BTN_WIDTH+18), btnPos.yMax+EditorGUIUtility.standardVerticalSpacing, NOTES_BTN_WIDTH, btnPos.height);
 			
 			if (GUI.Button(btnPos, _showNotes ? "Done" : "Notes", EditorStyles.miniButton)){
 				_showNotes = !_showNotes;

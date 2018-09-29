@@ -171,14 +171,18 @@ namespace SmartData.Abstract {
 			}
 			return null;
 		}
+		#endif
+
+		[System.Diagnostics.Conditional("UNITY_EDITOR")]
 		protected virtual void TriggerSmartRegistry(){
+			#if !SMARTDATA_NO_GRAPH_HOOKS
 			if (_refType == RefType.MULTI){
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartMulti, _writeable);
 			} else {
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartVar);
 			}
+			#endif
 		}
-		#endif
 
 		[SerializeField]
 		protected TData _value;
@@ -361,9 +365,7 @@ namespace SmartData.Abstract {
 						if (!unityEventOnReceive){
 							InvokeUnityEvent(value);
 						}
-						#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
 						TriggerSmartRegistry();
-						#endif
 						break;
 				}
 			}
@@ -382,9 +384,7 @@ namespace SmartData.Abstract {
 					if (!unityEventOnReceive){
 						InvokeUnityEvent(value);
 					}
-					#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
 					TriggerSmartRegistry();
-					#endif
 					break;
 			}
 		}
@@ -400,6 +400,7 @@ namespace SmartData.Abstract {
 			if (!unityEventOnReceive){
 				InvokeUnityEvent(value);
 			}
+			TriggerSmartRegistry();
 		}
 
 		protected abstract void InvokeUnityEvent(TData value);
