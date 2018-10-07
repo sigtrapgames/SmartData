@@ -29,6 +29,16 @@ namespace SmartData.Graph
 			editor.Initialize();
 		}
 
+		private void OnEnable()
+		{
+			Editors.SmartDataRegistry.graphIsOpen = true;
+		}
+
+		private void OnDisable()
+		{
+			Editors.SmartDataRegistry.graphIsOpen = false;
+		}
+
 		public void Initialize()
 		{
 			_graph = SmartGraph.Create();
