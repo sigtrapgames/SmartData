@@ -10,6 +10,9 @@ Need a flexible way to connect everything in your game without singletons, hard-
 * OR, to use the *git* repository, you'll need our events implementation, *Relay*<sup>[1]</sup>. [github.com/SixWays/Relay](https://github.com/SixWays/Relay)
 * Requires Unity 2018.2 or above.
 
+*If you have issues with anything not discussed in this readme, please let us know - but check [the wiki](https://github.com/sigtrapgames/SmartData/wiki) first!*  
+*SmartData also has a [Unity forum thread here](https://forum.unity.com/threads/open-source-smartdata-an-editor-driven-designer-friendly-framework-for-data-and-events.560065/) for further discussion.*
+
 # What is SmartData?
 Firstly, ***SmartData*** **is in beta**. With that out of the way, *SmartData* is a framework that uses `ScriptableObject`s to pass data around a game at the global level. Let's take a common example - showing the player's HP on the HUD. Let's assume the Player and the HUD are prefabs, dynamically instantiated at runtime, rather than placing them in each scene at edit-time and manually dragging references.
 
