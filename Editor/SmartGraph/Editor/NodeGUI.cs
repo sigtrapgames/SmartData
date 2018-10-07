@@ -155,6 +155,7 @@ namespace SmartData.Graph
                     {
                         Edge edge = graph.Connect(outSlot, inSlot);
 						EdgeGUI.EdgesData.Add(edge, call);
+
                         call.OnTriggered += ((direction) =>
 						{
 							EdgeTriggersTracker.RegisterTrigger(edge, direction);

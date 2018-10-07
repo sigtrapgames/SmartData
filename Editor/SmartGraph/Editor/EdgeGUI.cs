@@ -176,7 +176,7 @@ namespace SmartData.Graph
 		#region Edge drawer
 
 		const int kUnitsPerDash = 5;
-		const float kEdgeWidth = 6;
+		const float kEdgeWidth = 4;
 		const float kNodeTitleSpace = 56;
 		const float kNodeEdgeSeparation = 16;
 
