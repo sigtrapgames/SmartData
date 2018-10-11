@@ -84,6 +84,7 @@ namespace SmartData.Editors {
 				_isOnRestoreOverridden = IsOnRestoreOverridden(target.GetType());
 			}
 
+			#region Cache available decorator types
 			_decoratorTypes.Clear();
 
 			System.Type tDecBase = null;
@@ -119,8 +120,8 @@ namespace SmartData.Editors {
 							if (!t.IsAbstract && t.IsSubclassOf(tDecBase)){
 								var type = t;
 								
-								// Go up to find non-concrete type to match data type arg
-								while (type != null && !type.IsGenericType){
+								// Go up to find open base type to match data type arg
+								while (type != null && type.BaseType != tDecBase){
 									type = type.BaseType;
 								}
 								if (type == null) continue;
@@ -135,6 +136,7 @@ namespace SmartData.Editors {
 					}
 				}
 			}
+			#endregion
 		
 			_decBtnStyle = new GUILayoutOption[]{
 				GUILayout.MaxWidth(18), GUILayout.MaxHeight(18)
