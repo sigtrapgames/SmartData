@@ -114,7 +114,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 					int lines = 0;
 					foreach (var a in _i._regenTypesByPath){
 						++lines;
-						foreach (var b in a.Value){
+						foreach (var b in a.Value.data){
 							++lines;
 						}
 					}
@@ -133,7 +133,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 			Rect p = _i.position;
 			p.yMin = Mathf.Max(22, p.yMin);
 			_i.position = p;
-			_i.minSize = _i.maxSize = new Vector2(WIDTH, height);
+			_i.minSize = _i.maxSize = new Vector2(_i._isRegenerating ? WIDTH * 2 : WIDTH, height);
 		}
 		static void CacheAssemblies(Assembly a0, List<Assembly> results){
 			if (a0 == null) return;
@@ -192,12 +192,24 @@ Uses a simple string.Contains() match. Case-sensitive.
 		int _typeMatchIndex = 0;
 
 		protected class RegenData {
+			public enum Mode {OVERWRITE, NEW, UNSURE}
+			public Mode mode;
 			public string typeName;
+			public string outputFileName;
 			public string templateFileName;
 			public bool regen = true;
 		}
+		protected class RegenCategory {
+			public bool show;
+			public string path;
+			public List<RegenData> data = new List<RegenData>();
 
-		Dictionary<string, List<RegenData>> _regenTypesByPath = new Dictionary<string, List<RegenData>>();
+			public RegenCategory(string path){
+				this.path = path;
+			}
+		}
+
+		Dictionary<string, RegenCategory> _regenTypesByPath = new Dictionary<string, RegenCategory>();
 		bool _isRegenerating {get {return _regenTypesByPath.Count > 0;}}
 		
 		#region Messages
@@ -433,13 +445,76 @@ Uses a simple string.Contains() match. Case-sensitive.
 					EditorGUILayout.Space();
 					++EditorGUI.indentLevel;
 
+					GUIStyle infoStyle = new GUIStyle(EditorStyles.helpBox);
+					infoStyle.fontSize = 9;
+					infoStyle.fontStyle = FontStyle.Bold;
+					RectOffset margin = infoStyle.margin;
+					margin.top = 0;
+					margin.bottom = 1;
+					infoStyle.margin = margin;
+
 					foreach (var a in _regenTypesByPath){
-						EditorGUILayout.LabelField(a.Key);
-						++EditorGUI.indentLevel;
-						foreach (var data in a.Value){
-							data.regen = EditorGUILayout.ToggleLeft(data.typeName, data.regen);
+						a.Value.show = EditorGUILayout.Foldout(a.Value.show, a.Key);
+						if (a.Value.show){
+							++EditorGUI.indentLevel;
+							EditorGUILayout.BeginHorizontal(); {
+								// Filename
+								EditorGUILayout.BeginVertical(); {
+									EditorGUILayout.LabelField("Filename", EditorStyles.miniBoldLabel);
+									foreach (var data in a.Value.data){
+										switch (data.mode){
+											case RegenData.Mode.NEW:
+													GUI.backgroundColor = Color.blue;
+													break;
+												case RegenData.Mode.UNSURE:
+													GUI.backgroundColor = Color.yellow;
+													break;
+										}
+										data.regen = EditorGUILayout.ToggleLeft(data.outputFileName, data.regen);	
+										GUI.backgroundColor = gbc;
+									}
+								} EditorGUILayout.EndVertical();
+
+								// SmartType
+								EditorGUILayout.BeginVertical(); {
+									EditorGUILayout.LabelField("SmartType", EditorStyles.miniBoldLabel);
+									foreach (var data in a.Value.data){
+										EditorGUILayout.LabelField(data.typeName);
+									}
+								} EditorGUILayout.EndVertical();
+
+								// Template file
+								EditorGUILayout.BeginVertical(); {
+									EditorGUILayout.LabelField("Template", EditorStyles.miniBoldLabel);
+									foreach (var data in a.Value.data){
+										EditorGUILayout.LabelField(data.templateFileName);
+									}
+								} EditorGUILayout.EndVertical();
+
+								// Additional info
+								EditorGUILayout.BeginVertical(); {
+									EditorGUILayout.LabelField("Misc", EditorStyles.miniBoldLabel);
+									foreach (var data in a.Value.data){
+										switch (data.mode){
+											case RegenData.Mode.NEW:
+												GUI.backgroundColor = Color.blue;
+												EditorGUILayout.LabelField("New", infoStyle);
+												GUI.backgroundColor = gbc;
+												break;
+											case RegenData.Mode.UNSURE:
+												GUI.backgroundColor = Color.yellow;
+												EditorGUILayout.LabelField("Check if this is the right file to overwrite!", infoStyle);
+												GUI.backgroundColor = gbc;
+												break;
+											case RegenData.Mode.OVERWRITE:
+												EditorGUILayout.LabelField("");
+												break;
+										}
+									}
+								} EditorGUILayout.EndVertical();
+							} EditorGUILayout.EndHorizontal();
+							--EditorGUI.indentLevel;
 						}
-						--EditorGUI.indentLevel;
 					}
 					--EditorGUI.indentLevel;
 
@@ -476,6 +551,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 
 		void PopulateRegen(){
 			var files = AssetDatabase.FindAssets("t:Script");
+			var typesToTemplatesFound = new Dictionary<string, List<string>>();
 			for (int i=0; i<files.Length; ++i){
 				var f = files[i];
 				EditorUtility.DisplayProgressBar("Detecting Smart Types", string.Format("Reading script {0} / {1}", i, files.Length), (float)i/(float)files.Length);
@@ -483,36 +559,136 @@ Uses a simple string.Contains() match. Case-sensitive.
 				using (var file = File.OpenText(SmartEditorUtils.ToAbsolutePath(path))){
 					var line = file.ReadLine();
 					if (line.StartsWith(SMARTTYPE_HEADER)){
-						RegenData rd = new RegenData();
+						RegenData r = new RegenData();
 						
 						// Get data type from header
 						// SMARTTYPE {data type}
-						rd.typeName = line.Replace(SMARTTYPE_HEADER, "");
+						r.typeName = line.Replace(SMARTTYPE_HEADER, "").Trim();
 						var nextLine = file.ReadLine();
-						if (line.StartsWith(SMARTTEMPLATE_HEADER)){
-							string template = line.Replace(SMARTTEMPLATE_HEADER, "");
-							rd.templateFileName = template;
+						if (nextLine.StartsWith(SMARTTEMPLATE_HEADER)){
+							// Get template file
+							// SMARTTEMPLATE {template name}
+							r.templateFileName = nextLine.Replace(SMARTTEMPLATE_HEADER, "").Trim();
 						}
 
+						r.outputFileName = path;
 						path = SmartEditorUtils.ToDirectory(path);
-						List<RegenData> datas = null;
-						if (!_regenTypesByPath.TryGetValue(path, out datas)){
-							datas = new List<RegenData>();
-							_regenTypesByPath.Add(path, datas);
+						r.outputFileName = r.outputFileName.Replace(path+"/", "");
+						RegenCategory cat = null;
+						if (!_regenTypesByPath.TryGetValue(path, out cat)){
+							cat = new RegenCategory(path);
+							_regenTypesByPath.Add(path, cat);
 						}
-						datas.Add(rd);
+						cat.data.Add(r);
+
+						if (!string.IsNullOrEmpty(r.templateFileName)){
+							List<string> typeTemplates = null;
+							if (!typesToTemplatesFound.TryGetValue(r.typeName, out typeTemplates)){
+								typeTemplates = new List<string>();
+								typesToTemplatesFound.Add(r.typeName, typeTemplates);
+							}
+							if (!typeTemplates.Contains(r.templateFileName)){
+								typeTemplates.Add(r.templateFileName);
+							} else {
+								Debug.LogWarning("Multiple SmartData types using template "+r.templateFileName);
+							}
+						}
 					}
 				}
 			}
+
+			int j=0;
+			List<string> allTemplates = new List<string>();
+			foreach (var a in typesToTemplatesFound){
+				EditorUtility.DisplayProgressBar("Finding Smart Types without all current templated types", string.Format("Finding untemplated files for type {0} / ({1} / {2})", a.Key, j, files.Length), (float)j/(float)typesToTemplatesFound.Count);
+				// Get all known templates, knock them off one by one
+				allTemplates.Clear();
+				foreach (var b in _templateToOutput){
+					allTemplates.Add(b.Key);
+				}
+				foreach (var template in a.Value){
+					if (allTemplates.Contains(template)){
+						allTemplates.Remove(template);
+					} else {
+						Debug.LogWarningFormat("Missing template file: {0}.txt. Is it missing from Custom Templates, or has it been renamed?", template);
+					}
+				}
+				// Check for remaining templates				
+				foreach (var t in allTemplates){
+					string filename = string.Format(_templateToOutput[t], PrettyTypeName(a.Key));
+					// Look for files that would have resulted from each template
+					var missingFiles = AssetDatabase.FindAssets("t:Script "+filename);
+					if (missingFiles.Length > 0){
+						// Found candidates for regen
+						foreach (var mf in missingFiles){
+							string path = SmartEditorUtils.ToDirectory(AssetDatabase.GUIDToAssetPath(mf));
+							RegenCategory cat = null;
+							if (!_regenTypesByPath.TryGetValue(path, out cat)){
+								cat = new RegenCategory(path);
+								_regenTypesByPath.Add(path, cat);
+							}
+							RegenData data = new RegenData();
+							data.mode = RegenData.Mode.UNSURE;
+							data.regen = false;
+							data.outputFileName = filename+".cs";
+							data.templateFileName = t;
+							data.typeName = a.Key;
+							
+							cat.data.Add(data);
+							// Default to showing categories with new files
+							cat.show = true;
+						}
+					} else {
+						// None found - need to make new one
+						// Get path - guess at putting next to existing files
+						string newPath = null;
+						// Loop over existing paths
+						foreach (var b in _regenTypesByPath){
+							// Loop over files being regenned at path
+							foreach (var r in b.Value.data){
+								// If regenned file has this underlying type, let's put the new file next to it
+								if (r.typeName == a.Key){
+									newPath = b.Key;
+								}
+							}
+							if (!string.IsNullOrEmpty(newPath)) break;
+						}
+						if (!string.IsNullOrEmpty(newPath)){
+							RegenData newGen = new RegenData();
+							newGen.mode = RegenData.Mode.NEW;
+							newGen.outputFileName = filename+".cs";
+							newGen.templateFileName = t;
+							newGen.typeName = a.Key;
+
+							_regenTypesByPath[newPath].data.Add(newGen);
+							// Default to showing categories with unsure overwrites
+							_regenTypesByPath[newPath].show = true;
+						} else {
+							Debug.LogErrorFormat("Found no existing SmartTypes for type {0} template {1}", a.Key, t);
+						}
+					}
+				}
+				++j;
+			}
+
+			
+			foreach (var a in _regenTypesByPath){
+				foreach (var r in a.Value.data){
+					if (r.mode != RegenData.Mode.OVERWRITE){
+						a.Value.show = true;
+					}
+				}
+			}
+
 			EditorUtility.ClearProgressBar();
 		}
 		void RegenNow(){
 			PopulateTemplates();
 			scriptAbsPathToGuid.Clear();
 			foreach (var a in _regenTypesByPath){
-				foreach (var rd in a.Value){
-					if (rd.regen){
-						CreateType(rd.typeName, true, a.Key, rd.templateFileName);
+				foreach (var r in a.Value.data){
+					if (r.regen){
+						CreateType(r.typeName, true, a.Key, r.templateFileName);
 					}
 				}
 			}
@@ -1005,7 +1181,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 		void Write(string outputFileName, string templateFileName, string t, string fullPath, ref string log){
 			try {
 				string format = string.Format(
-					"{0} {{0}}\n{1} {{3}}\n// Do not move or delete the above lines\n\n{2}",
+					"{0}{{0}}\n{1}{{3}}\n// Do not move or delete the above lines\n\n{2}",
 					SMARTTYPE_HEADER, SMARTTEMPLATE_HEADER, Resources.Load<TextAsset>(templateFileName).text
 				);
 				if (!Directory.Exists(fullPath)){

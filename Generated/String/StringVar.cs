@@ -1,5 +1,6 @@
 // SMARTTYPE string
-// Do not move or delete the above line
+// SMARTTEMPLATE SmartVarTemplate
+// Do not move or delete the above lines
 
 using System.Collections;
 using System.Collections.Generic;

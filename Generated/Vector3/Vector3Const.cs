@@ -1,3 +1,7 @@
+// SMARTTYPE Vector3
+// SMARTTEMPLATE SmartConstTemplate
+// Do not move or delete the above lines
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
