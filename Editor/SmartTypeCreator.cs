@@ -145,12 +145,21 @@ Uses a simple string.Contains() match. Case-sensitive.
 				}
 			}
 		}
-		static void PopulateTemplates(){
+		/// <summary>
+		/// Populate templates from settings. Return false if duplicates present.
+		/// </summary>
+		static bool PopulateTemplates(){
 			_templateToOutput = new Dictionary<string, string>(_templateToOutputBase);
 			var custom = SmartTypeCreatorSettings.DEFAULT.customTemplates;
+			bool result = true;
 			for (int i=0; i<custom.Count; ++i){
-				_templateToOutput.Add(custom[i].templateFile, custom[i].outputFile);
+				if (!_templateToOutput.ContainsKey(custom[i].templateFile)){
+					_templateToOutput.Add(custom[i].templateFile, custom[i].outputFile);
+				} else {
+					result = false;
+				}
 			}
+			return result;
 		}
 		#endregion
 
@@ -683,7 +692,9 @@ Uses a simple string.Contains() match. Case-sensitive.
 			EditorUtility.ClearProgressBar();
 		}
 		void RegenNow(){
-			PopulateTemplates();
+			if (!PopulateTemplates()){
+				Debug.LogError("Duplicate template file in custom template settings - cannot regenerate SmartTypes");
+			}
 			scriptAbsPathToGuid.Clear();
 			foreach (var a in _regenTypesByPath){
 				foreach (var r in a.Value.data){
@@ -827,50 +838,62 @@ Uses a simple string.Contains() match. Case-sensitive.
 		bool HelpButton(params GUILayoutOption[] options){
 			return GUILayout.Button(_helpIcon, EditorStyles.label, options);
 		}
+
+		static List<string> _tempCheckDupTemplateNames = new List<string>();
 		void DrawSettings(){
 			var templates = SmartTypeCreatorSettings.DEFAULT.customTemplates;
-			int invalidIndex = -1;
+			int badOutputIndex = -1;
+			int dupInputIndex = -1;
+			_tempCheckDupTemplateNames.Clear();
 			for (int i=0; i<templates.Count; ++i){
-				if (!templates[i].outputFile.Contains("{0}")){
-					invalidIndex = i;
-					break;
-				} else {
-					
+				if (badOutputIndex < 0 && !templates[i].outputFile.Contains("{0}")){
+					badOutputIndex = i;
 				}
+				if (dupInputIndex < 0 && _tempCheckDupTemplateNames.Contains(templates[i].templateFile)){
+					dupInputIndex = i;
+				}
+				_tempCheckDupTemplateNames.Add(templates[i].templateFile);
 			}
-			_settingsValid = invalidIndex < 0;
+			_settingsValid = badOutputIndex < 0 && dupInputIndex < 0;
 
 			Color gbc = GUI.backgroundColor;
 			if (!_showSettings){
 				GUI.backgroundColor = (_settingsValid) ? gbc : Color.red;
 			}
-			
-			EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-			_showSettings = EditorGUILayout.Foldout(_showSettings, "Advanced");
-			
-			if (_showSettings){
-				EditorGUI.BeginChangeCheck();
-				DrawWithHelp(_settingsCustomTemplates, HELP_TEMPLATE, ref _showSettingsCustomTemplateTooltip);
-				bool templatesChanged = EditorGUI.EndChangeCheck();
-				if (!_settingsValid){
-					GUI.backgroundColor = Color.red;
-					EditorGUILayout.HelpBox(string.Format("Custom template [{0}] output filename must include '{{0}}'", invalidIndex), MessageType.Error);
-					GUI.backgroundColor = gbc;
-				}
+			EditorGUILayout.BeginVertical(EditorStyles.helpBox); {
+				GUI.backgroundColor = gbc;
+				_showSettings = EditorGUILayout.Foldout(_showSettings, "Advanced");
+				
+				if (_showSettings){
+					EditorGUI.BeginChangeCheck();
+					DrawWithHelp(_settingsCustomTemplates, HELP_TEMPLATE, ref _showSettingsCustomTemplateTooltip);
+					bool templatesChanged = EditorGUI.EndChangeCheck();
 
-				EditorGUI.BeginChangeCheck();
-				DrawWithHelp(_settingsExclude, HELP_EXCLUDE, ref _showSettingsExcludeTooltip);
-				EditorGUILayout.PropertyField(_settingsFrameTime);
-				if (EditorGUI.EndChangeCheck() || templatesChanged){
-					_settingsSerialized.ApplyModifiedProperties();
-					_settingsSerialized.Update();
-				}
-				if (templatesChanged){
-					PopulateTemplates();
-				}
-			}
+					// Check output names
+					if (badOutputIndex >= 0){
+						GUI.backgroundColor = Color.red;
+						EditorGUILayout.HelpBox(string.Format("Custom template [{0}] output filename must include '{{0}}'", badOutputIndex), MessageType.Error);
+						GUI.backgroundColor = gbc;
+					}
+					// Check duplicates
+					if (dupInputIndex >= 0){
+						GUI.backgroundColor = Color.red;
+						EditorGUILayout.HelpBox(string.Format("Custom template [{0}] name must be unique", dupInputIndex), MessageType.Error);
+						GUI.backgroundColor = gbc;
+					}
 
-			EditorGUILayout.EndVertical();
+					EditorGUI.BeginChangeCheck();
+					DrawWithHelp(_settingsExclude, HELP_EXCLUDE, ref _showSettingsExcludeTooltip);
+					EditorGUILayout.PropertyField(_settingsFrameTime);
+					if (EditorGUI.EndChangeCheck() || templatesChanged){
+						_settingsSerialized.ApplyModifiedProperties();
+						_settingsSerialized.Update();
+					}
+					if (templatesChanged){
+						PopulateTemplates();
+					}
+				}
+			} EditorGUILayout.EndVertical();
 			GUI.backgroundColor = gbc;
 		}
 		void DrawWithHelp(SerializedProperty p, string help, ref bool showHelp){
