@@ -10,6 +10,7 @@ namespace SmartData.Editors {
 		#region Consts
 		const string LEGALCHARS = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890_<>,.[] ";
 		const string SMARTTYPE_HEADER = "// SMARTTYPE ";
+		const string SMARTTEMPLATE_HEADER = "// SMARTTEMPLATE ";
 		const int WIDTH = 640;
 		const string ICON_MATCH = "icon: ";
 		const string ICON_DEFAULT = "{instanceID: 0}";
@@ -190,8 +191,13 @@ Uses a simple string.Contains() match. Case-sensitive.
 		bool _matching = false;
 		int _typeMatchIndex = 0;
 
-		Dictionary<string, Dictionary<string, bool>> _regenTypesByPath = new Dictionary<string, Dictionary<string, bool>>();
-		List<string> _regenTypes = new List<string>();
+		protected class RegenData {
+			public string typeName;
+			public string templateFileName;
+			public bool regen = true;
+		}
+
+		Dictionary<string, List<RegenData>> _regenTypesByPath = new Dictionary<string, List<RegenData>>();
 		bool _isRegenerating {get {return _regenTypesByPath.Count > 0;}}
 		
 		#region Messages
@@ -430,12 +436,8 @@ Uses a simple string.Contains() match. Case-sensitive.
 					foreach (var a in _regenTypesByPath){
 						EditorGUILayout.LabelField(a.Key);
 						++EditorGUI.indentLevel;
-						_regenTypes.Clear();
-						foreach (string type in a.Value.Keys){
-							_regenTypes.Add(type);
-						}
-						foreach (string type in _regenTypes){
-							a.Value[type] = EditorGUILayout.ToggleLeft(type, a.Value[type]);
+						foreach (var data in a.Value){
+							data.regen = EditorGUILayout.ToggleLeft(data.typeName, data.regen);
 						}
 						--EditorGUI.indentLevel;
 					}
@@ -481,17 +483,24 @@ Uses a simple string.Contains() match. Case-sensitive.
 				using (var file = File.OpenText(SmartEditorUtils.ToAbsolutePath(path))){
 					var line = file.ReadLine();
 					if (line.StartsWith(SMARTTYPE_HEADER)){
+						RegenData rd = new RegenData();
+						
 						// Get data type from header
 						// SMARTTYPE {data type}
-						string type = line.Replace(SMARTTYPE_HEADER, "");
-						path = SmartEditorUtils.ToDirectory(path);
-
-						Dictionary<string, bool> types = null;
-						if (!_regenTypesByPath.TryGetValue(path, out types)){
-							types = new Dictionary<string, bool>();
-							_regenTypesByPath.Add(path, types);
+						rd.typeName = line.Replace(SMARTTYPE_HEADER, "");
+						var nextLine = file.ReadLine();
+						if (line.StartsWith(SMARTTEMPLATE_HEADER)){
+							string template = line.Replace(SMARTTEMPLATE_HEADER, "");
+							rd.templateFileName = template;
 						}
-						types[type] = true;
+
+						path = SmartEditorUtils.ToDirectory(path);
+						List<RegenData> datas = null;
+						if (!_regenTypesByPath.TryGetValue(path, out datas)){
+							datas = new List<RegenData>();
+							_regenTypesByPath.Add(path, datas);
+						}
+						datas.Add(rd);
 					}
 				}
 			}
@@ -501,9 +510,9 @@ Uses a simple string.Contains() match. Case-sensitive.
 			PopulateTemplates();
 			scriptAbsPathToGuid.Clear();
 			foreach (var a in _regenTypesByPath){
-				foreach (var t in a.Value){
-					if (t.Value){
-						CreateType(t.Key, true, a.Key);
+				foreach (var rd in a.Value){
+					if (rd.regen){
+						CreateType(rd.typeName, true, a.Key, rd.templateFileName);
 					}
 				}
 			}
@@ -862,7 +871,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 		#endregion
 
 		#region Type Creation
-		bool CreateType(string typeName, bool overwrite, string path=""){
+		bool CreateType(string typeName, bool overwrite, string path="", string forceTemplate=""){
 			if (string.IsNullOrEmpty(typeName)) return false;
 			foreach (var c in typeName){
 				if (!LEGALCHARS.Contains(c.ToString())){
@@ -885,8 +894,20 @@ Uses a simple string.Contains() match. Case-sensitive.
 			Debug.LogFormat("Creating classes in {0}", fullPath);
 			
 			List<string> filenames = new List<string>();
-			foreach (var a in _templateToOutput){
-				filenames.Add(string.Format(a.Value, prettyName) + ".cs");
+
+			bool singleTemplateMode = !string.IsNullOrEmpty(forceTemplate);
+
+			if (singleTemplateMode){
+				string filename = null;
+				if (!_templateToOutput.TryGetValue(forceTemplate, out filename)){
+					Debug.LogError("No output filename found for SmartTemplate "+forceTemplate);
+					return false;
+				}
+				filenames.Add(string.Format(filename, prettyName) + ".cs");
+			} else {
+				foreach (var a in _templateToOutput){
+					filenames.Add(string.Format(a.Value, prettyName) + ".cs");
+				}
 			}
 
 			bool filesExist = false;
@@ -906,14 +927,23 @@ Uses a simple string.Contains() match. Case-sensitive.
 			}
 			if (makeFiles){
 				string writeLog = "Created files:";
-				int i=0;
-				foreach (var a in _templateToOutput){
+				if (singleTemplateMode){
 					try {
-						Write(filenames[i], a.Key, typeName, fullPath, ref writeLog);
+						Write(filenames[0], forceTemplate, typeName, fullPath, ref writeLog);
 					} catch (System.Exception e){
-						Debug.LogErrorFormat("Skipping file due to error: {0}\nCheck custom template settings - template filename '{1}' may be incorrect.\nError:\n{2}\n{3}", fullPath+filenames[i], a.Key, e.Message, e.StackTrace);
+						Debug.LogErrorFormat("Skipping file due to error: {0}\nCheck custom template settings - template filename '{1}' may be incorrect.\nError:\n{2}\n{3}", fullPath+filenames[0], forceTemplate, e.Message, e.StackTrace);
+						return false;
 					}
-					++i;
+				} else {
+					int i=0;
+					foreach (var a in _templateToOutput){
+						try {
+							Write(filenames[i], a.Key, typeName, fullPath, ref writeLog);
+						} catch (System.Exception e){
+							Debug.LogErrorFormat("Skipping file due to error: {0}\nCheck custom template settings - template filename '{1}' may be incorrect.\nError:\n{2}\n{3}", fullPath+filenames[i], a.Key, e.Message, e.StackTrace);
+						}
+						++i;
+					}
 				}
 
 				Debug.Log(writeLog);
@@ -974,7 +1004,10 @@ Uses a simple string.Contains() match. Case-sensitive.
 
 		void Write(string outputFileName, string templateFileName, string t, string fullPath, ref string log){
 			try {
-				string format = Resources.Load<TextAsset>(templateFileName).text;
+				string format = string.Format(
+					"{0} {{0}}\n{1} {{3}}\n// Do not move or delete the above lines\n\n{2}",
+					SMARTTYPE_HEADER, SMARTTEMPLATE_HEADER, Resources.Load<TextAsset>(templateFileName).text
+				);
 				if (!Directory.Exists(fullPath)){
 					Directory.CreateDirectory(fullPath);
 				}
@@ -982,7 +1015,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 				string relPathToScript = SmartEditorUtils.ToRelativePath(absPathToScript);
 				scriptAbsPathToGuid[absPathToScript] = AssetDatabase.AssetPathToGUID(relPathToScript);
 
-				File.WriteAllText(absPathToScript, string.Format(format, t, PrettyTypeName(t), Capitalize(t)));
+				File.WriteAllText(absPathToScript, string.Format(format, t, PrettyTypeName(t), Capitalize(t), templateFileName));
 				log += "\n  " + outputFileName;
 			} catch (System.FormatException e){
 				Debug.LogError("Bad formatting in template "+templateFileName);
