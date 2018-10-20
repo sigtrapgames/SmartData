@@ -5,6 +5,9 @@ Need a flexible way to connect everything in your game without singletons, hard-
 
 [![Game Architecture with Scriptable Objects](http://img.youtube.com/vi/raQ3iHhE_Kk/0.jpg)](http://www.youtube.com/watch?v=raQ3iHhE_Kk "Game Architecture with Scriptable Objects")
 
+### UPDATE NOTE
+The type generator / regenerator has changed slightly. Please make sure you're backed up, update to the latest commit, use *Create > SmartData > Generate Types > Regenerate...* and double check the changes made. This update is to support moving generated files around - SmartData will from now on regenerate files in-place.
+
 ### INSTALLATION
 * Grab *SmartData.unitypackage* from the [Releases page](https://github.com/sigtrapgames/SmartData/releases) for everything you need!
 * OR, to use the *git* repository, you'll need our events implementation, *Relay*<sup>[1]</sup>. [github.com/SixWays/Relay](https://github.com/SixWays/Relay)
