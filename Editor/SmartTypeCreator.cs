@@ -210,6 +210,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 		}
 		protected class RegenCategory {
 			public bool show;
+			public bool regen = true;
 			public string path;
 			public List<RegenData> data = new List<RegenData>();
 
@@ -463,9 +464,14 @@ Uses a simple string.Contains() match. Case-sensitive.
 					infoStyle.margin = margin;
 
 					foreach (var a in _regenTypesByPath){
-						a.Value.show = EditorGUILayout.Foldout(a.Value.show, a.Key);
+						EditorGUILayout.BeginHorizontal(); {
+							a.Value.regen = EditorGUILayout.Toggle(a.Value.regen, GUILayout.Width(25));
+							a.Value.show = EditorGUILayout.Foldout(a.Value.show, a.Key);
+						} EditorGUILayout.EndHorizontal();
+						
 						if (a.Value.show){
-							++EditorGUI.indentLevel;
+							GUI.enabled = a.Value.regen;
+							EditorGUI.indentLevel += 2;
 							EditorGUILayout.BeginHorizontal(); {
 								// Filename
 								EditorGUILayout.BeginVertical(); {
@@ -522,7 +528,8 @@ Uses a simple string.Contains() match. Case-sensitive.
 									}
 								} EditorGUILayout.EndVertical();
 							} EditorGUILayout.EndHorizontal();
-							--EditorGUI.indentLevel;
+							EditorGUI.indentLevel -= 2;
+							GUI.enabled = true;
 						}
 					}
 					--EditorGUI.indentLevel;
@@ -697,6 +704,9 @@ Uses a simple string.Contains() match. Case-sensitive.
 			}
 			scriptAbsPathToGuid.Clear();
 			foreach (var a in _regenTypesByPath){
+				// Ignore entire folder
+				if (!a.Value.regen) continue;
+				// Check per type
 				foreach (var r in a.Value.data){
 					if (r.regen){
 						CreateType(r.typeName, true, a.Key, r.templateFileName);
