@@ -18,12 +18,17 @@ namespace SmartData.Examples.Editors {
 				return __textStyle;
 			}
 		}
+
+		Vector2 _scroll = Vector2.zero;
+
 		void OnEnable(){
 			_notes = serializedObject.FindProperty("_notes");
 		}
 		public override void OnInspectorGUI(){
 			EditorGUILayout.Space();
+			_scroll = EditorGUILayout.BeginScrollView(_scroll);
 			GUILayout.Label(_notes.stringValue.Replace("\\n","\n"), _textStyle);
+			EditorGUILayout.EndScrollView();
 		}
 	}
 }
