@@ -2,16 +2,68 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SmartData.Abstract;
+#if UNITY_EDITOR
+using UnityEditor;
+using System.Reflection;
+#endif
 
 namespace SmartData.Components {
 	[AddComponentMenu("")]
 	public class SmartRefUnbinder : MonoBehaviour {
+		#region Static
+		#if UNITY_EDITOR
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+		static void Init(){
+			EditorApplication.playModeStateChanged += OnEditorChangePlayMode;
+		}
+
+		static PlayModeStateChange _playMode = PlayModeStateChange.EnteredEditMode;
+		static bool _isPlaying {
+			get {
+				return 
+					_playMode == PlayModeStateChange.EnteredPlayMode || 
+					_playMode == PlayModeStateChange.ExitingPlayMode;
+			}
+		}
+		static void OnEditorChangePlayMode(PlayModeStateChange change){
+			Debug.LogFormat("Editor Playmode: {0} => {1}", _playMode, change);
+			_playMode = change;
+
+			if (_isPlaying){
+				var refs = SmartData.Editors.SmartDataRegistry.GetSmartReferences();
+				if (refs.Count > 0){
+					FieldInfo autoListen = typeof(SmartData.Abstract.SmartRefBase).GetField("_autoListen", BindingFlags.NonPublic | BindingFlags.Instance);
+					FieldInfo ownerGoId = typeof(SmartData.Abstract.SmartRefBase).GetField("_ownerGoId", BindingFlags.NonPublic | BindingFlags.Instance);
+					foreach (var a in refs){
+						if (a.Key.IsAlive){
+							var sr = (SmartData.Abstract.SmartRefBase)a.Key.Target;
+							if ((bool)autoListen.GetValue(sr)){
+								GameObject ownerGo = (GameObject)EditorUtility.InstanceIDToObject((int)ownerGoId.GetValue(sr));
+								Debug.LogFormat(ownerGo, "Init binding: {0} ({1}) [{2}]", sr.name, ownerGo.name, _playMode);
+								SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(sr, ownerGo, true);
+							}
+						}
+					}
+				}
+				EditorApplication.playModeStateChanged -= OnEditorChangePlayMode;
+			}
+		}
+		#endif
+
 		static Dictionary<GameObject, SmartRefUnbinder> _all = new Dictionary<GameObject, SmartRefUnbinder>();
 		/// <summary>
 		/// Register SmartRef for automatic event unbinding when gameobject is destroyed.
 		/// Note: adds a MonoBehaviour to the gameobject when first called.
 		/// </summary>
 		public static void UnbindOnDestroy(SmartRefBase r, GameObject go, bool enableUnityEventNow=true){
+			#if UNITY_EDITOR
+			// OnEditorChangePlayMode will automatically go through registered SmartRefs on Start
+			if (!_isPlaying){
+				Debug.Log("Not in play mode. Skipping");
+				return;
+			}
+			#endif
+			Debug.Log("UNBINDER CREATE "+enableUnityEventNow.ToString()+": "+go.name, go);
 			SmartRefUnbinder helper = null;
 			if (!_all.TryGetValue(go, out helper)){
 				helper = go.AddComponent<SmartRefUnbinder>();
@@ -22,14 +74,18 @@ namespace SmartData.Components {
 				r.unityEventOnReceive = true;
 			}
 		}
+		#endregion
 
+		#region Instance
 		List<SmartRefBase> _refs = new List<SmartRefBase>();
 
 		void OnDestroy(){
+			Debug.Log("UNBINDER UNBIND");
 			for (int i=0; i<_refs.Count; ++i){
 				_refs[i].unityEventOnReceive = false;
 			}
 			_all.Remove(gameObject);
 		}
+		#endregion
 	}
 }

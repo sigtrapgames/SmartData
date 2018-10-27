@@ -19,6 +19,11 @@ namespace SmartData.Editors {
 				ownerProp.objectReferenceValue = owner;
 				metadataGenerated = true;
 			}
+			var ownerId = property.FindPropertyRelative("_ownerGoId");
+			if (ownerId.intValue != owner.gameObject.GetInstanceID()){
+				ownerId.intValue = owner.gameObject.GetInstanceID();
+				metadataGenerated = true;
+			}
 			var pathProp = property.FindPropertyRelative("_propertyPath");
 			string pp = pathProp.stringValue;
 			if (pp != property.propertyPath){

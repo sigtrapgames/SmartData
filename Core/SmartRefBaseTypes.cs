@@ -25,6 +25,8 @@ namespace SmartData.Abstract {
 		[SerializeField][HideInInspector]
 		Component _owner;
 		[SerializeField][HideInInspector]
+		int _ownerGoId;
+		[SerializeField][HideInInspector]
 		string _propertyPath;
 		[SerializeField]
 		protected bool _autoListen = false;
