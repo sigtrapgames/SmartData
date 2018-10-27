@@ -83,7 +83,10 @@ namespace SmartData.Abstract {
 		/// Called automatically if Auto Bind checked in editor.
 		/// </summary>
 		public void UnbindOnDestroy(bool enableUnityEventNow=true){
-			SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(this, _owner.gameObject, enableUnityEventNow);
+			// Might be destroyed before getting bound
+			if (_owner && _owner.gameObject){
+				SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(this, _owner.gameObject, enableUnityEventNow);
+			}
 		}
 	}
 	/// <summary>

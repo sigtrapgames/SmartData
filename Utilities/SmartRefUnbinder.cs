@@ -26,10 +26,9 @@ namespace SmartData.Components {
 			}
 		}
 		static void OnEditorChangePlayMode(PlayModeStateChange change){
-			Debug.LogFormat("Editor Playmode: {0} => {1}", _playMode, change);
 			_playMode = change;
-
 			if (_isPlaying){
+				// Go through registered SmartRefs and bind if necessary
 				var refs = SmartData.Editors.SmartDataRegistry.GetSmartReferences();
 				if (refs.Count > 0){
 					FieldInfo autoListen = typeof(SmartData.Abstract.SmartRefBase).GetField("_autoListen", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -39,7 +38,6 @@ namespace SmartData.Components {
 							var sr = (SmartData.Abstract.SmartRefBase)a.Key.Target;
 							if ((bool)autoListen.GetValue(sr)){
 								GameObject ownerGo = (GameObject)EditorUtility.InstanceIDToObject((int)ownerGoId.GetValue(sr));
-								Debug.LogFormat(ownerGo, "Init binding: {0} ({1}) [{2}]", sr.name, ownerGo.name, _playMode);
 								SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(sr, ownerGo, true);
 							}
 						}
@@ -58,12 +56,8 @@ namespace SmartData.Components {
 		public static void UnbindOnDestroy(SmartRefBase r, GameObject go, bool enableUnityEventNow=true){
 			#if UNITY_EDITOR
 			// OnEditorChangePlayMode will automatically go through registered SmartRefs on Start
-			if (!_isPlaying){
-				Debug.Log("Not in play mode. Skipping");
-				return;
-			}
+			if (!_isPlaying) return;
 			#endif
-			Debug.Log("UNBINDER CREATE "+enableUnityEventNow.ToString()+": "+go.name, go);
 			SmartRefUnbinder helper = null;
 			if (!_all.TryGetValue(go, out helper)){
 				helper = go.AddComponent<SmartRefUnbinder>();
@@ -80,7 +74,6 @@ namespace SmartData.Components {
 		List<SmartRefBase> _refs = new List<SmartRefBase>();
 
 		void OnDestroy(){
-			Debug.Log("UNBINDER UNBIND");
 			for (int i=0; i<_refs.Count; ++i){
 				_refs[i].unityEventOnReceive = false;
 			}
