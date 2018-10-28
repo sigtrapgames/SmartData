@@ -54,19 +54,21 @@ namespace SmartData.Components {
 		/// Note: adds a MonoBehaviour to the gameobject when first called.
 		/// </summary>
 		public static void UnbindOnDestroy(SmartRefBase r, GameObject go, bool enableUnityEventNow=true){
+			if (enableUnityEventNow){
+				r.unityEventOnReceive = true;
+			}
+
 			#if UNITY_EDITOR
 			// OnEditorChangePlayMode will automatically go through registered SmartRefs on Start
 			if (!_isPlaying) return;
 			#endif
+			
 			SmartRefUnbinder helper = null;
 			if (!_all.TryGetValue(go, out helper)){
 				helper = go.AddComponent<SmartRefUnbinder>();
 				_all.Add(go, helper);
 			}
 			helper._refs.Add(r);
-			if (enableUnityEventNow){
-				r.unityEventOnReceive = true;
-			}
 		}
 		#endregion
 
