@@ -102,6 +102,9 @@ namespace SmartData.Graph
 
 		public void OverrideSelection(int overrideIndex)
 		{
+			if (_graphGUI == null){
+				Initialize();
+			}
 			_graphGUI.SelectionOverride = overrideIndex;
 		}
 

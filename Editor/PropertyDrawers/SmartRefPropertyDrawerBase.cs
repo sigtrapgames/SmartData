@@ -129,7 +129,7 @@ namespace SmartData.Editors {
 					}
 					
 					SerializedProperty lastEvt = (e1 == null) ? e0 : e1;
-					Rect statusRect = new Rect(evtPos.xMin-SmartEditorUtils.indent, evtPos.yMin + GetEventHeight(lastEvt, false) + position.height - 10, 100, 15);
+					Rect statusRect = new Rect(evtPos.xMin-SmartEditorUtils.indent, evtPos.yMin + GetEventHeight(lastEvt, false) + position.height - 10, 150, 15);
 					var autoListen = property.FindPropertyRelative("_autoListen");
 					bool writeable = IsWriteable(property, fieldInfo);
 					if (Application.isPlaying){
