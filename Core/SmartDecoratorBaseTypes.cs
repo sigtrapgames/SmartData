@@ -91,7 +91,7 @@ namespace SmartData.Abstract {
 	public abstract class SmartDataDecoratorBase<TData> : SmartDecoratorBase, ISmartRefOwnerRedirect {
 		SmartVar<TData> _owner;
 		public SmartVar<TData> owner {get {return _owner;}}
-		public virtual TData OnUpdated(TData newValue){return newValue;}
+		public virtual TData OnUpdated(TData oldValue, TData newValue, bool isResettingToDefault){return newValue;}
 		public virtual void OnDispatched(TData value){}
 		public override void SetOwner(SmartBindableBase owner){
 			this._owner = (SmartVar<TData>)owner;

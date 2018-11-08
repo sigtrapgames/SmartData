@@ -9,7 +9,7 @@ namespace SmartData.Abstract {
 	/// <para />Implement other behaviour to call Receive when data is replicated.
 	/// </summary>
 	public abstract class SmartNetworkDataDecoratorBase<TData> : SmartDataDecoratorBase<TData> {
-		public override TData OnUpdated(TData newValue){
+		public override TData OnUpdated(TData oldValue, TData newValue, bool isResettingToDefault){
 			Send(newValue);
 			return newValue;
 		}

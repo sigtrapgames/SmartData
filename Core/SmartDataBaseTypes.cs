@@ -282,38 +282,42 @@ namespace SmartData.Abstract {
 
 		public TData value {
 			get {return _runtimeValue;}
-			set {
-				// Auto-bound SmartRefs get bound first time value changes after they're queued
-				if (_binder.hasRefsToBind){
-					_binder.AutoBind();
-				}
-				
-				if (_hasDecorators){
-					TData temp = value;
-					temp = ExecuteDecoratorsOnUpdate(_decorators, temp);
-					if (_multiDecorators.Count > 0){
-						foreach (var a in _multiDecorators){
-							temp = ExecuteDecoratorsOnUpdate(a.Value, temp);
-						}
-					}
-					_runtimeValue = temp;
-				} else {
-					_runtimeValue = value;
-				}
-				
-				_relay.Dispatch(_runtimeValue);
-			}
+			set {SetValue(value, false);}
 		}
-		TData ExecuteDecoratorsOnUpdate(SmartDecoratorBase[] decorators, TData value){
+		public TData defaultValue {get {return _value;}}
+		void SetValue(TData v, bool resetting){
+			// Auto-bound SmartRefs get bound first time value changes after they're queued
+			if (_binder.hasRefsToBind){
+				_binder.AutoBind();
+			}
+			
+			if (_hasDecorators){
+				TData temp = v;
+				temp = ExecuteDecoratorsOnUpdate(_decorators, _runtimeValue, temp, resetting);
+				if (_multiDecorators.Count > 0){
+					foreach (var a in _multiDecorators){
+						temp = ExecuteDecoratorsOnUpdate(a.Value, _runtimeValue, temp, resetting);
+					}
+				}
+
+				_runtimeValue = temp;
+			} else {
+				_runtimeValue = v;
+			}
+			
+			_relay.Dispatch(_runtimeValue);
+		}
+
+		TData ExecuteDecoratorsOnUpdate(SmartDecoratorBase[] decorators, TData oldValue, TData newValue, bool resetting){
 			if (decorators != null && decorators.Length != 0){
 				for (int i=0; i<decorators.Length; ++i){
 					var d = decorators[i];
 					if (d.active){
-						value = (decorators[i] as SmartDataDecoratorBase<TData>).OnUpdated(value);
+						newValue = (decorators[i] as SmartDataDecoratorBase<TData>).OnUpdated(oldValue, newValue, resetting);
 					}
 				}
 			}
-			return value;
+			return newValue;
 		}
 
 		#region Lifecycle
@@ -363,10 +367,10 @@ namespace SmartData.Abstract {
 			switch (_dataType){
 				case DataType.STRUCT:
 				case DataType.CLASS:
-					value = _value;
+					SetValue(_value, true);
 					break;
 				case DataType.ARRAY:
-					value = (TData)(_value as System.Array).Clone();
+					SetValue((TData)(_value as System.Array).Clone(), true);
 					break;
 				case DataType.DICTIONARY:
 					var dType = typeof(TData);
@@ -379,15 +383,15 @@ namespace SmartData.Abstract {
 							);
 							_dictionaryConstructor = dType.GetConstructor(new System.Type[]{_iDictType});
 						}
-						value = (TData)_dictionaryConstructor.Invoke(argsDict);
+						SetValue((TData)_dictionaryConstructor.Invoke(argsDict), true);
 					} else {
 						// Empty dictionary - just create a new one
-						value = (TData)System.Activator.CreateInstance(dType);
+						SetValue((TData)System.Activator.CreateInstance(dType), true);
 					}
 					break;
 				case DataType.COLLECTION:
 					object[] argsCol = new object[]{_value};
-					value = (TData)System.Activator.CreateInstance(typeof(TData), argsCol);
+					SetValue((TData)System.Activator.CreateInstance(typeof(TData), argsCol), true);
 					break;
 			}
 		}
