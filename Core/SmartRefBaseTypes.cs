@@ -205,7 +205,7 @@ namespace SmartData.Abstract {
 
 		[SerializeField]
 		protected TData _value;
-		protected TData _default;
+		protected TData _defaultValue;
 		[SerializeField]
 		TConst _smartConst;
 		[SerializeField]
@@ -221,6 +221,18 @@ namespace SmartData.Abstract {
 					case RefType.VAR:
 					case RefType.MULTI:
 						return _writeable.value;
+				}
+				return default(TData);
+			}
+		}
+		public TData defaultValue {
+			get {
+				switch (_refType){
+					case RefType.LOCAL: return _defaultValue;
+					case RefType.CONST: return _smartConst.value;
+					case RefType.VAR:
+					case RefType.MULTI:
+						return _writeable.defaultValue;
 				}
 				return default(TData);
 			}
@@ -331,7 +343,7 @@ namespace SmartData.Abstract {
 		public void OnAfterDeserialize(){
 			if (!_hasDefault){
 				// No need to restore on scene change
-				_default = _value;
+				_defaultValue = _value;
 				_hasDefault = true;
 			}
 
@@ -397,7 +409,7 @@ namespace SmartData.Abstract {
 		public void SetToDefault(){
 			switch (_refType){
 				case RefType.LOCAL:
-					_value = _default;
+					_value = _defaultValue;
 					break;
 				case RefType.VAR:
 				case RefType.MULTI:
@@ -492,6 +504,9 @@ namespace SmartData.Abstract {
 		/// </summary>
 		public TData value {
 			get {return _multi[index].value;}
+		}
+		public TData defaultValue {
+			get {return _multi[index].defaultValue;}
 		}
 		public IRelayLink<TData> relay {get {return _multi[index].relay;}}
 

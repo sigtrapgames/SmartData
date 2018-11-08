@@ -49,10 +49,12 @@ namespace SmartData.Interfaces {
 	/// <summary>
 	/// <para />A SmartData whose value can be read and written.
 	/// <para />* value get;set;
+	/// <para />* defaultValue get;;
 	/// <para />* SetToDefault()
 	/// </summary>
 	public interface ISmartDataWriter<TData> : ISmartObject {
 		TData value {get; set;}
+		TData defaultValue {get;}
 		void SetToDefault();
 	}
 	/// <summary>
