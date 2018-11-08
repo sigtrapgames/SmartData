@@ -563,16 +563,21 @@ namespace SmartData.Editors {
 				SmartBase smart = SmartRefBase._EDITOR_GetSmartObject(r.Value, smartRef, out useMultiIndex, out writeable);
 
 				if (smart == target){
+					ISmartRefOwnerRedirect redirect = null;
 					try {
 						Object owner = (Object)r.Value.GetFieldPrivate("_owner", binding).GetValue(smartRef);
-						if (owner == null){
-							Debug.Log("Whooopsiw");
-						}
 						string typeName = owner.GetType().Name;
 						if (owner is ISmartRefOwnerRedirect){
-							var redirect = (owner as ISmartRefOwnerRedirect);
-							owner = redirect.GetSmartRefOwner();
-							typeName = redirect.GetOwnerType().Name;
+							redirect = (owner as ISmartRefOwnerRedirect);
+							var redirectedOwner = redirect.GetSmartRefOwner();
+							if (redirectedOwner){
+								owner = redirect.GetSmartRefOwner();
+								typeName = redirect.GetOwnerType().Name;
+							} else {
+								// ISmartRefOwnerRedirect probably hasn't had its owner populated yet
+								Debug.LogWarning("Warning: ISmartRefOwnerRedirect owner probably null", redirect as Object);
+								typeName = "MISSING REDIRECT FROM "+typeName;
+							}
 						} else if (owner is Component){
 							owner = (owner as Component).gameObject;
 							typeName = typeof(GameObject).Name;
