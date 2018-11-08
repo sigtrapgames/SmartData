@@ -105,33 +105,10 @@ namespace SmartData.Editors {
 			}
 
 			if (tDecBase != null){
-				if (_tData == null){
-					// Event
-					foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies()){
-						foreach (var t in a.GetTypes()){
-							if (!t.IsAbstract && t.IsSubclassOf(tDecBase)){
-								_decoratorTypes.Add(t);
-							}
-						}
-					}
-				} else {
-					foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies()){
-						foreach (var t in a.GetTypes()){
-							if (!t.IsAbstract && t.IsSubclassOf(tDecBase)){
-								var type = t;
-								
-								// Go up to find open base type to match data type arg
-								while (type != null && type.BaseType != tDecBase){
-									type = type.BaseType;
-								}
-								if (type == null) continue;
-
-								var gs = type.GetGenericArguments();
-								// Match type arg to SmartData asset
-								if (gs.Length == 1 && gs[0] == _tData){
-									_decoratorTypes.Add(t);
-								}
-							}
+				foreach (var a in System.AppDomain.CurrentDomain.GetAssemblies()){
+					foreach (var t in a.GetTypes()){
+						if (!t.IsAbstract && t.IsSubclassOf(tDecBase)){
+							_decoratorTypes.Add(t);
 						}
 					}
 				}

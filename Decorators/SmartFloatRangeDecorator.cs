@@ -5,7 +5,7 @@ using SmartData.Abstract;
 using Sigtrap.Relays;
 
 namespace SmartData.SmartFloat.Decorators {
-	[System.Serializable][DecoratorDescription("Clamps a FloatVariable when its value is set.")]
+	[DecoratorDescription("Clamps a FloatVariable when its value is set.")]
 	public class SmartFloatRangeDecorator : SmartDataDecoratorBase<float> {
 		[SerializeField]
 		float _min;
