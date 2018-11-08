@@ -6,6 +6,23 @@ using SmartData.Abstract;
 using SmartData.Interfaces;
 using System.Linq;
 
+namespace SmartData {
+
+	/// <summary>
+	/// An object which can own a SmartRef but points to another Object for the purposes of SmartGraph.
+	/// </summary>
+	public interface ISmartRefOwnerRedirect {
+		/// <summary>
+		/// Returns the redirected owner Object.
+		/// </summary>
+		Object GetSmartRefOwner();
+		/// <summary>
+		/// Returns the redirected owner Type.
+		/// May be this object's type for clarity.
+		/// </summary>
+		System.Type GetOwnerType();
+	}
+}
 namespace SmartData.Abstract {
 	#region General
 	/// <summary>
@@ -23,9 +40,9 @@ namespace SmartData.Abstract {
 		#endif
 
 		[SerializeField][HideInInspector]
-		Component _owner;
+		Object _owner;
 		[SerializeField][HideInInspector]
-		int _ownerGoId;
+		int _ownerId;
 		[SerializeField][HideInInspector]
 		string _propertyPath;
 		[SerializeField]
@@ -84,8 +101,11 @@ namespace SmartData.Abstract {
 		/// </summary>
 		public void UnbindOnDestroy(bool enableUnityEventNow=true){
 			// Might be destroyed before getting bound
-			if (_owner && _owner.gameObject){
-				SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(this, _owner.gameObject, enableUnityEventNow);
+			if (_owner && _owner is Component){
+				var go = (_owner as Component).gameObject;
+				if (go){
+					SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(this, go, enableUnityEventNow);
+				}
 			}
 		}
 	}

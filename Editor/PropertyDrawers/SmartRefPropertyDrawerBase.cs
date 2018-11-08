@@ -13,17 +13,33 @@ namespace SmartData.Editors {
 
 		public sealed override void OnGUI(Rect position, SerializedProperty property, GUIContent label){
 			bool metadataGenerated = false;
+
 			var ownerProp = property.FindPropertyRelative("_owner");
-			var owner = (Component)property.serializedObject.targetObject;
-			if (ownerProp.objectReferenceValue != owner){
-				ownerProp.objectReferenceValue = owner;
+			var owner = property.serializedObject.targetObject;
+			int id = 0;
+			if (owner is Component){
+				// Owner is a Component - find GameObject
+				var og = (owner as Component).gameObject;
+				if (ownerProp.objectReferenceValue != og){
+					ownerProp.objectReferenceValue = og;
+					metadataGenerated = true;
+				}
+				id = og.GetInstanceID();
+			} else {
+				// Owner is an Object - use directly
+				if (ownerProp.objectReferenceValue != owner){
+					ownerProp.objectReferenceValue = owner;
+					metadataGenerated = true;
+				}
+				id = owner.GetInstanceID();
+			}
+
+			var ownerId = property.FindPropertyRelative("_ownerId");
+			if (ownerId.intValue != id){
+				ownerId.intValue = id;
 				metadataGenerated = true;
 			}
-			var ownerId = property.FindPropertyRelative("_ownerGoId");
-			if (ownerId.intValue != owner.gameObject.GetInstanceID()){
-				ownerId.intValue = owner.gameObject.GetInstanceID();
-				metadataGenerated = true;
-			}
+			
 			var pathProp = property.FindPropertyRelative("_propertyPath");
 			string pp = pathProp.stringValue;
 			if (pp != property.propertyPath){

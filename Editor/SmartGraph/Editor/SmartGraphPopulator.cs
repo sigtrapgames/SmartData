@@ -42,14 +42,21 @@ namespace SmartData.Graph
 						}
 					}
 					recMeta += (writeable ? "Read / Write" : "Read Only");
-					Component owner = (Component)r.Value.GetFieldPrivate("_owner", binding).GetValue(target);
-				
+					Object owner = (Object)r.Value.GetFieldPrivate("_owner", binding).GetValue(target);
+					string ownerType = owner.GetType().Name;
+					if (owner is Component){
+						owner = (owner as Component).gameObject;
+					} else if (owner is ISmartRefOwnerRedirect){
+						var redirect = (owner as ISmartRefOwnerRedirect);
+						owner = redirect.GetSmartRefOwner();
+						ownerType = redirect.GetOwnerType().Name;
+					}
+
 					try {
 						calls.Add(
 							new SmartGraphConnection(
-								owner.gameObject,
-								smart, target,
-								string.Format("{0}::{1}", owner.GetType().Name, ((string)r.Value.GetFieldPrivate("_propertyPath", binding).GetValue(target)).Replace(".Array.data","")),
+								owner, smart, target,
+								string.Format("{0}::{1}", ownerType, ((string)r.Value.GetFieldPrivate("_propertyPath", binding).GetValue(target)).Replace(".Array.data","")),
 								recMeta, null, !writeable, false
 							)
 						);

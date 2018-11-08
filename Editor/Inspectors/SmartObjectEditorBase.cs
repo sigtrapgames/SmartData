@@ -36,6 +36,7 @@ namespace SmartData.Editors {
 		protected Texture2D _iconWarn {get; private set;}
 		protected Texture2D _iconSmart {get; private set;}
 		protected Texture2D _iconGo {get; private set;}
+		protected Texture2D _iconAsset {get; private set;}
 		
 
 		#region Decorators
@@ -59,7 +60,7 @@ namespace SmartData.Editors {
 				this.rw = rw;
 			}
 		}
-		Dictionary<GameObject, List<RefData>> _refs = new Dictionary<GameObject, List<RefData>>();
+		Dictionary<Object, List<RefData>> _refs = new Dictionary<Object, List<RefData>>();
 		protected Dictionary<object, List<MethodInfo>> _listeners = new Dictionary<object, List<MethodInfo>>();
 		static List<System.WeakReference> _refsToRemove = new List<System.WeakReference>();
 		#endregion
@@ -120,9 +121,9 @@ namespace SmartData.Editors {
 			};
 			_iconChevronUp = Resources.Load<Texture2D>("GUI/chevron_up");
 			_iconChevronDown = Resources.Load<Texture2D>("GUI/chevron_down");
-			_iconGo = EditorGUIUtility.Load("icons/GameObject Icon") as Texture2D;
 			_iconWarn = EditorGUIUtility.Load("icons/_Help.png") as Texture2D;
 			_iconGo = EditorGUIUtility.IconContent("GameObject Icon").image as Texture2D;
+			_iconAsset = EditorGUIUtility.IconContent("Prefab Icon").image as Texture2D;
 			_iconSmart = SmartEditorUtils.LoadSmartIcon(_smartType);
 
 			PopulateRefs();
@@ -160,8 +161,14 @@ namespace SmartData.Editors {
 					goName.fontStyle = FontStyle.Bold;
 					foreach (var a in _refs){
 						EditorGUILayout.BeginVertical(EditorStyles.helpBox);{
-							EditorGUILayout.BeginHorizontal();{
-								EditorGUILayout.LabelField(new GUIContent(_iconGo, "GameObject"), GUILayout.Width(30), GUILayout.Height(25));
+							EditorGUILayout.BeginHorizontal();{								
+								GUIContent icon = null;
+								if (a.Key is GameObject){
+									icon = new GUIContent(_iconGo, "GameObject");
+								} else {
+									icon = new GUIContent(_iconAsset, "Asset");
+								}
+								EditorGUILayout.LabelField(icon, GUILayout.Width(30), GUILayout.Height(25));
 								EditorGUILayout.LabelField(a.Key.name, goName);
 								GUILayout.FlexibleSpace();
 								GUI.backgroundColor = Color.cyan;
@@ -557,14 +564,26 @@ namespace SmartData.Editors {
 
 				if (smart == target){
 					try {
-						Component owner = (Component)r.Value.GetFieldPrivate("_owner", binding).GetValue(smartRef);
+						Object owner = (Object)r.Value.GetFieldPrivate("_owner", binding).GetValue(smartRef);
+						if (owner == null){
+							Debug.Log("Whooopsiw");
+						}
+						string typeName = owner.GetType().Name;
+						if (owner is ISmartRefOwnerRedirect){
+							var redirect = (owner as ISmartRefOwnerRedirect);
+							owner = redirect.GetSmartRefOwner();
+							typeName = redirect.GetOwnerType().Name;
+						} else if (owner is Component){
+							owner = (owner as Component).gameObject;
+							typeName = typeof(GameObject).Name;
+						}
 						string pPath = ((string)r.Value.GetFieldPrivate("_propertyPath", binding).GetValue(smartRef)).Replace(".Array.data","");
 						List<RefData> data = null;
-						if (!_refs.TryGetValue(owner.gameObject, out data)){
+						if (!_refs.TryGetValue(owner, out data)){
 							data = new List<RefData>();
-							_refs.Add(owner.gameObject, data);
+							_refs.Add(owner, data);
 						}
-						data.Add(new RefData(string.Format("{0}.{1}", owner.GetType().Name, pPath), writeable));
+						data.Add(new RefData(string.Format("{0}.{1}", typeName, pPath), writeable));
 					#pragma warning disable 0168
 					} catch (MissingReferenceException e) {
 						// Gameobject probably destroyed - remove ref from registry.

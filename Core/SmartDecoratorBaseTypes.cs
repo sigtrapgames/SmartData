@@ -60,7 +60,7 @@ namespace SmartData.Abstract {
 	/// <summary>
 	/// Base class for custom SmartEvent Decorators.
 	/// </summary>
-	public abstract class SmartEventDecoratorBase : SmartDecoratorBase {
+	public abstract class SmartEventDecoratorBase : SmartDecoratorBase, ISmartRefOwnerRedirect {
 		SmartEvent.Data.EventVar _owner;
 		public SmartEvent.Data.EventVar owner {get {return _owner;}}
 		IRelayBinding _onDispatchBinding;
@@ -76,18 +76,32 @@ namespace SmartData.Abstract {
 			_onDispatchBinding.Enable(false);
 		}
 		protected virtual void OnDispatched(){}
+
+		public Object GetSmartRefOwner(){
+			return _owner;
+		}
+		public System.Type GetOwnerType(){
+			return GetType();
+		}
 	}
 
 	/// <summary>
 	/// Base class for custom SmartEvent Decorators.
 	/// </summary>
-	public abstract class SmartDataDecoratorBase<TData> : SmartDecoratorBase {
+	public abstract class SmartDataDecoratorBase<TData> : SmartDecoratorBase, ISmartRefOwnerRedirect {
 		SmartVar<TData> _owner;
 		public SmartVar<TData> owner {get {return _owner;}}
 		public virtual TData OnUpdated(TData newValue){return newValue;}
 		public virtual void OnDispatched(TData value){}
 		public override void SetOwner(SmartBindableBase owner){
 			this._owner = (SmartVar<TData>)owner;
+		}
+
+		public Object GetSmartRefOwner(){
+			return _owner;
+		}
+		public System.Type GetOwnerType(){
+			return GetType();
 		}
 	}
 
