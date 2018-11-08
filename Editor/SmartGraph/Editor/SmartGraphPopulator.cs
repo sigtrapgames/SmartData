@@ -48,8 +48,14 @@ namespace SmartData.Graph
 						owner = (owner as Component).gameObject;
 					} else if (owner is ISmartRefOwnerRedirect){
 						var redirect = (owner as ISmartRefOwnerRedirect);
-						owner = redirect.GetSmartRefOwner();
-						ownerType = redirect.GetOwnerType().Name;
+						var redirectedOwner = redirect.GetSmartRefOwner();
+						if (redirectedOwner){
+							owner = redirectedOwner;
+							ownerType = redirect.GetOwnerType().Name;
+						} else {
+							// ISmartRefOwnerRedirect probably hasn't had its owner populated yet
+							Debug.LogWarning("Warning: ISmartRefOwnerRedirect owner probably null", redirect as Object);
+						}
 					}
 
 					try {
