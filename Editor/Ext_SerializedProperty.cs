@@ -16,7 +16,6 @@ namespace UnityEditor {
 			// e.g. propName.Array.data[0] => propName[0]
 			string path = p.propertyPath.Replace(".Array.data[", "[");
 			string[] elements = path.Split('.');
-			System.Type t = o.GetType();
 			// Iterate through property path
 			for (int i=0; i<elements.Length; ++i){
 				if (p.IsArrayElement(elements[i])){
@@ -43,7 +42,7 @@ namespace UnityEditor {
 			for (int i=0; i<elements.Length; ++i){
 				if (p.IsArrayElement(elements[i])){
 					string arrayName;
-					int j = GetArrayIndex(elements, i, out arrayName);
+					GetArrayIndex(elements, i, out arrayName);
 					t = t.GetFieldPrivate(arrayName, FLAGS_ALL).FieldType;
 				} else {
 					t = t.GetFieldPrivate(elements[i], FLAGS_ALL).FieldType;
