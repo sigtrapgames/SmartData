@@ -15,6 +15,7 @@ namespace SmartData.Editors {
 		Color _red = new Color(1,0.25f,0.25f);
 
 		SerializedProperty _spScript;
+		SerializedProperty _valueToSet;
 
 		void OnEnable(){
 			_dispatch = target.GetType().GetMethod("Dispatch", BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
@@ -22,6 +23,7 @@ namespace SmartData.Editors {
 			_data = target.GetType().GetFieldPrivate("_data", BindingFlags.NonPublic | BindingFlags.Instance);
 
 			_spScript = serializedObject.FindProperty("m_Script");
+			_valueToSet = serializedObject.FindProperty("_valueToSet");
 		}
 
 		public override void OnInspectorGUI(){
@@ -72,6 +74,11 @@ namespace SmartData.Editors {
 			} else {
                 EditorGUILayout.PropertyField(spData, true);
 			}
+			
+			if (_valueToSet != null){
+				EditorGUILayout.PropertyField(_valueToSet);
+			}
+
 			if (EditorGUI.EndChangeCheck()){
 				if (toRemove >= 0){
 					serializedObject.FindProperty("_data").DeleteArrayElementAtIndex(toRemove);

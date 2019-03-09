@@ -11,9 +11,13 @@ namespace SmartData.Editors {
 		bool _showEvent;
 		bool _forceExpand;
 
+		protected SerializedProperty _baseProperty {get; private set;}
 		public sealed override void OnGUI(Rect position, SerializedProperty property, GUIContent label){
+			ProjectPanelPathUtil.Init();
+
 			bool metadataGenerated = false;
 
+			_baseProperty = property;
 			var ownerProp = property.FindPropertyRelative("_owner");
 			var owner = property.serializedObject.targetObject;
 			int id = 0;
@@ -297,7 +301,7 @@ namespace SmartData.Editors {
 			l.height = position.height;
 			l.width = position.width - (25 + SPACING);
 			
-			EditorGUI.PropertyField(l, property.FindPropertyRelative("_smartMulti"), GUIContent.none);
+			DrawSmart(l, property.FindPropertyRelative("_smartMulti"), min, max);
 
 			// Disable index if necessary
 			bool forceNoMultiIndex = false;
@@ -323,6 +327,26 @@ namespace SmartData.Editors {
 				GUI.Label(r, new GUIContent("",  "Disabled in code"));
 			}
 			GUI.enabled = true;
+		}
+		public void DrawSmart(Rect position, SerializedProperty property, Vector2 min, Vector2 max){
+			Rect fieldPos = new Rect(position.x, position.y, position.width - (18 + SPACING), position.height);
+			EditorGUI.PropertyField(fieldPos, property, GUIContent.none);
+
+			Rect createBtnPos = new Rect();
+			createBtnPos.xMin = fieldPos.max.x + SPACING - SmartEditorUtils.indent;
+			createBtnPos.xMax = max.x;
+			createBtnPos.yMin = fieldPos.yMin;
+			createBtnPos.height = fieldPos.height;
+			Color gbc = GUI.backgroundColor;
+			GUI.backgroundColor = Color.green;
+			if (GUI.Button(createBtnPos, "+", EditorStyles.miniButton)){
+				var s = ScriptableObject.CreateInstance(property.GetFieldType().FullName);
+				s.name = ObjectNames.NicifyVariableName(_baseProperty.name).Replace(" ","");
+				property.objectReferenceValue = s;
+				AssetDatabase.CreateAsset(s, string.Format("{0}/{1}.asset", ProjectPanelPathUtil.GetProjectPath(), s.name));
+				EditorGUIUtility.PingObject(s);
+			}
+			GUI.backgroundColor = gbc;
 		}
 
 		protected bool IsEventEnabled(SerializedProperty prop, FieldInfo fieldInfo){

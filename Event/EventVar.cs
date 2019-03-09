@@ -47,7 +47,7 @@ namespace SmartData.SmartEvent {
 	/// </summary>	
 	[System.Serializable]
 	public class EventListener : SmartRefMultiableBase, ISmartEventRefListener, ISerializationCallbackReceiver {
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected sealed override SmartBase _EDITOR_GetSmartObject(out bool useMultiIndex){
 			useMultiIndex = _useMulti;
 			if (_useMulti) return _smartMulti;

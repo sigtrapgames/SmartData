@@ -6,7 +6,54 @@ using SmartData.Abstract;
 using SmartData.Interfaces;
 using System.Linq;
 
+namespace SmartData {
+#region Enums and Structs
+	public enum MultiElementType {
+		/// <summary>This SmartObject is not an element in any SmartMultis.</summary>
+		NONE,
+		/// <summary>This SmartObject is an element of a SmartMulti and was created by it.</summary>
+		DYNAMIC,
+		/// <summary>This SmartObject is an element in one or more SmartMultis and exists as an asset.</summary>
+		PERSISTENT
+	}
+	public enum RestoreMode {
+		/// <summary>Data is not being reset - this is a regular value set call.</summary>
+		NONE,
+		/// <summary>Data is being initialized in OnEnable. Decorators will not be executed.</summary>
+		INIT,
+		/// <summary>Data is being reset to default automatically on scene load.</summary>
+		AUTO,
+		/// <summary>Data is being reset to default manually.</summary>
+		MANUAL
+	}
+	public enum SetOperation {
+		NONE = 0,
+		/// <summary>Data was added to the SmartSet. Index is that of new element. Index will be out of range during decorator execution.</summary>
+		ADDED = 1,
+		/// <summary>Data was removed from the SmartSet. Index is where the element was before removal.</summary>
+		REMOVED = 2,
+		/// <summary>Data was changed within the SmartSet. Index is the element which was changed.</summary>
+		CHANGED = 3,
+		/// <summary>Data was inserted into the SmartSet. Index is that of new element. NOT YET USED.</summary>
+		INSERTED = 4,
+		/// <summart>SmartSet is being cleared.</summary>
+		CLEARED = 5
+	}
+	public struct SetEventData<T> {
+		public T value {get; private set;}
+		public SetOperation operation {get; private set;}
+		public int index {get; private set;}
+		public SetEventData(T data, SetOperation operation, int index){
+			this.value = data;
+			this.operation = operation;
+			this.index = index;
+		}
+	}
+#endregion
+}
+
 namespace SmartData.Abstract {
+#region Base
 	/// <summary>
 	/// Non-generic abstract base for all Smart classes. Do not reference directly.
 	/// </summary>
@@ -39,14 +86,14 @@ namespace SmartData.Abstract {
 		string _description;
 
 		protected virtual void OnEnable(){
-			#if UNITY_EDITOR
+	#if UNITY_EDITOR
 			SmartData.Editors.SmartDataRegistry.RegisterSmart(this);
-			#endif
+	#endif
 		}
 		protected virtual void OnDisable(){
-			#if UNITY_EDITOR
+	#if UNITY_EDITOR
 			SmartData.Editors.SmartDataRegistry.UnregisterSmart(this);
-			#endif
+	#endif
 		}
 	}
 	/// <summary>
@@ -127,7 +174,6 @@ namespace SmartData.Abstract {
 		}
 		/// <summary>
 		/// Get attached decorators of, or derived from, the specified type, without GC allocation.
-		/// See Unity? It's easy.
 		/// </summary>
 		/// <param name="results">Pre-initialised array to pass matching decorators into.</param>
 		/// <param name="includeMultis">If true, includes decorators from parent SmartMultis.</param>
@@ -154,7 +200,88 @@ namespace SmartData.Abstract {
 			return result;
 		}
 		
+	#region Multi Registration
+		Dictionary<SmartMultiBase, int> _multiParentsPersistent = new Dictionary<SmartMultiBase, int>();
+		/// <summary>
+		/// Indicates whether this SmartObject is an element in any SmartMultis.
+		/// </summary>
+		public MultiElementType multiElementType {get; private set;}
+		/// <summary>
+		/// If this SmartObject was dynamically created by a SmartMulti, returns that SmartMulti.
+		/// Check multiElementType is DYNAMIC first.
+		/// </summary>
+		public SmartMultiBase multiParentDynamic {get; private set;}
+		int _multiParentDynamicIndex = -1;
+		/// <summary>
+		/// If this SmartObject was dynamically created by a SmartMulti, returns index of this SmartObject in that SmartMulti.
+		/// Check multiElementType is DYNAMIC first.
+		/// </summary>
+		public int multiParentDynamicIndex {get {return _multiParentDynamicIndex;}}
+		/// <summary>
+		/// If this SmartObject is an asset and referenced by one or more SmartMultis, returns those SmartMultis.
+		/// Creates and returns a copy of the array.
+		/// Check multiElementType is PERSISTENT first.
+		/// </summary>
+		public SmartMultiBase[] GetMultiParentsPersistent(){
+			if (multiElementType != MultiElementType.PERSISTENT) return null;
+			var result = new SmartMultiBase[_multiParentsPersistent.Count];
+			int i=0;
+			foreach (var a in _multiParentsPersistent){
+				result[i] = a.Key;
+				++i;
+			}
+			return result;
+		}
+		/// <summary>
+		/// Returns the index of this SmartObject in the specified SmartMulti.
+		/// If not an element in specified SmartMulti, returns -1.
+		/// <param name="parent">The SmartMulti. Can leave null if multiElementType is DYNAMIC.</param>
+		public int GetMultiIndex(SmartMultiBase parent=null){
+			switch (multiElementType){
+				case MultiElementType.NONE:
+					return -1;
+				case MultiElementType.DYNAMIC:
+					if (parent == null || parent == multiParentDynamic){
+						return _multiParentDynamicIndex;
+					}
+					return -1;
+				case MultiElementType.PERSISTENT:
+					if (parent == null){
+						throw new System.ArgumentException("Must specify SmartMulti parent when getting MultiIndex of a PERSISTENT SmartObject.");
+					}
+					int result;
+					if (!_multiParentsPersistent.TryGetValue(parent, out result)){
+						result = -1;
+					}
+					return result;
+			}
+			return -1;
+		}
+		/// <summary>
+		/// Internal use only. Registers this SmartObject as an element of a SmartMulti.
+		/// </summary>
+		public void SetMulti(SmartMultiBase multi, int index, bool isDynamic){
+			if (isDynamic){
+				if (multiElementType != MultiElementType.NONE){
+					throw new System.Exception(string.Format("SmartObject's MultiElementType is already {0} - cannot set DYNAMIC SmartMulti parent", multiElementType));
+				}
+				multiElementType = MultiElementType.DYNAMIC;
+				multiParentDynamic = multi;
+				_multiParentDynamicIndex = index;
+			} else {
+				if (multiElementType == MultiElementType.DYNAMIC){
+					throw new System.Exception(string.Format("SmartObject's MultiElementType is already {0} - cannot set PERSISTENT SmartMulti parent", multiElementType));
+				}
+				if (_multiParentsPersistent.ContainsKey(multi)){
+					throw new System.ArgumentException(string.Format("Trying to add SmartMulti {0} as a parent of SmartObject {1} when already registered as a parent", multi.name, name));
+				}
+				multiElementType = MultiElementType.PERSISTENT;
+				_multiParentsPersistent.Add(multi, index);
+			}
+		}
+	#endregion Multi Registration
 
+	#region Decorators from Multis
 		/// <summary>
 		/// Internal use only. Registers a SmartMulti's decorators with its child SmartDatas.
 		/// </summary>
@@ -184,6 +311,8 @@ namespace SmartData.Abstract {
 				Debug.LogWarningFormat("SmartData {0} has external decorators from {1} SmartMultis. Order of these groups of decorators is undefined.{2}", name, _multiDecorators.Count, multis);
 			}
 		}
+	#endregion Decorators from Multis
+		
 		protected override void EvalHasDecorators(){
 			_hasDecorators = 
 				(_multiDecorators != null && _multiDecorators.Count > 0) || 
@@ -198,17 +327,18 @@ namespace SmartData.Abstract {
 			}
 		}
 
-		#if UNITY_EDITOR
+	#if UNITY_EDITOR
 		void _EDITOR_RemoveMultiDecorators(SmartMultiBase[] owners){
 			foreach (var o in owners){
 				_multiDecorators.Remove(o);
 			}
 			WarnMultiDecorators();
 		}
-		#endif
+	#endif
 	}
+#endregion
 
-	#region Const
+#region Const
 	/// <summary>
 	/// Abstract base for SmartConsts. Do not reference. Will not serialize.
 	/// </summary>
@@ -217,9 +347,9 @@ namespace SmartData.Abstract {
 		TData _value;
 		public TData value {get {return _value;}}
 	}
-	#endregion
+#endregion Const
 
-	#region Variable
+#region Variable
 	/// <summary>
 	/// Non-generic abstract base for SmartData, for Editor purposes. Do not reference.
 	/// </summary>
@@ -282,10 +412,16 @@ namespace SmartData.Abstract {
 
 		public TData value {
 			get {return _runtimeValue;}
-			set {SetValue(value, false);}
+			set {SetValue(value, RestoreMode.NONE);}
 		}
 		public TData defaultValue {get {return _value;}}
-		void SetValue(TData v, bool resetting){
+		void SetValue(TData v, RestoreMode restore){
+			// When setting initial value, don't dispatch anything or use decorators
+			if (restore == RestoreMode.INIT){
+				_runtimeValue = v;
+				return;
+			}
+
 			// Auto-bound SmartRefs get bound first time value changes after they're queued
 			if (_binder.hasRefsToBind){
 				_binder.AutoBind();
@@ -293,10 +429,10 @@ namespace SmartData.Abstract {
 			
 			if (_hasDecorators){
 				TData temp = v;
-				temp = ExecuteDecoratorsOnUpdate(_decorators, _runtimeValue, temp, resetting);
+				temp = ExecuteDecoratorsOnUpdate(_decorators, _runtimeValue, temp, restore);
 				if (_multiDecorators.Count > 0){
 					foreach (var a in _multiDecorators){
-						temp = ExecuteDecoratorsOnUpdate(a.Value, _runtimeValue, temp, resetting);
+						temp = ExecuteDecoratorsOnUpdate(a.Value, _runtimeValue, temp, restore);
 					}
 				}
 
@@ -308,19 +444,19 @@ namespace SmartData.Abstract {
 			_relay.Dispatch(_runtimeValue);
 		}
 
-		TData ExecuteDecoratorsOnUpdate(SmartDecoratorBase[] decorators, TData oldValue, TData newValue, bool resetting){
+		TData ExecuteDecoratorsOnUpdate(SmartDecoratorBase[] decorators, TData oldValue, TData newValue, RestoreMode restore){
 			if (decorators != null && decorators.Length != 0){
 				for (int i=0; i<decorators.Length; ++i){
 					var d = decorators[i];
 					if (d.active){
-						newValue = (decorators[i] as SmartDataDecoratorBase<TData>).OnUpdated(oldValue, newValue, resetting);
+						newValue = (decorators[i] as SmartDataDecoratorBase<TData>).OnUpdated(oldValue, newValue, restore);
 					}
 				}
 			}
 			return newValue;
 		}
 
-		#region Lifecycle
+	#region Lifecycle
 		protected override void OnEnable(){
 			base.OnEnable();
 
@@ -336,7 +472,7 @@ namespace SmartData.Abstract {
 
 			UnityEngine.SceneManagement.SceneManager.activeSceneChanged += OnSceneChanged;
 
-			Restore();
+			Restore(RestoreMode.INIT);
 		}
 		protected override void OnDisable(){
 			base.OnDisable();
@@ -344,33 +480,36 @@ namespace SmartData.Abstract {
 		}
 		void OnSceneChanged(UnityEngine.SceneManagement.Scene s0, UnityEngine.SceneManagement.Scene s1){
 			if (_resetOnSceneChange){
-				Restore();
+				Restore(RestoreMode.AUTO);
 			}
 		}
-		protected void Restore(){
+		/// <summary>
+		/// Safely try to restore to serialized value.
+		/// </summary>
+		/// <param name="init">Passed in OnEnable to set initial value without dispatching events or decorators.</summary>
+		protected void Restore(RestoreMode restore){
 			try {
-				OnRestore();
-			} catch (System.Exception ex){
-				Debug.LogErrorFormat(
-					"Automatic reset behaviour for {0} failed. Please override {0}.OnRestore().", GetType().Name
-				);
-				throw ex;
+				OnRestore(restore);
+			} catch {
+				Debug.LogErrorFormat("Automatic reset behaviour for {0}/{1} failed. Please override {0}.OnRestore().", GetType().Name, this.name);
+				throw;
 			}
 		}
 		/// <summary>
 		/// Restore runtime value to default (serialized) value.
 		/// <para />Override this to implement type-specific restore behaviour.
 		/// </summary>
-		protected virtual void OnRestore(){
+		/// <param name="init">Passed in OnEnable to set initial value without dispatching events or decorators.</summary>
+		protected virtual void OnRestore(RestoreMode restore){
 			// Storing and restoring defaults are same action
 			// Storing actually means writing existing value to runtime value
 			switch (_dataType){
 				case DataType.STRUCT:
 				case DataType.CLASS:
-					SetValue(_value, true);
+					SetValue(_value, restore);
 					break;
 				case DataType.ARRAY:
-					SetValue((TData)(_value as System.Array).Clone(), true);
+					SetValue((TData)(_value as System.Array).Clone(), restore);
 					break;
 				case DataType.DICTIONARY:
 					var dType = typeof(TData);
@@ -383,19 +522,19 @@ namespace SmartData.Abstract {
 							);
 							_dictionaryConstructor = dType.GetConstructor(new System.Type[]{_iDictType});
 						}
-						SetValue((TData)_dictionaryConstructor.Invoke(argsDict), true);
+						SetValue((TData)_dictionaryConstructor.Invoke(argsDict), restore);
 					} else {
 						// Empty dictionary - just create a new one
-						SetValue((TData)System.Activator.CreateInstance(dType), true);
+						SetValue((TData)System.Activator.CreateInstance(dType), restore);
 					}
 					break;
 				case DataType.COLLECTION:
 					object[] argsCol = new object[]{_value};
-					SetValue((TData)System.Activator.CreateInstance(typeof(TData), argsCol), true);
+					SetValue((TData)System.Activator.CreateInstance(typeof(TData), argsCol), restore);
 					break;
 			}
 		}
-		#endregion
+	#endregion Lifecycle
 
 		/// <summary>
 		/// Force a dispatch if value object doesn't change, e.g. when changing an element from a List.
@@ -410,7 +549,7 @@ namespace SmartData.Abstract {
 		/// Reset to initial serialized value. For reference and collection types, may not have desired effect.
 		/// </summary>
 		public void SetToDefault(){
-			Restore();
+			Restore(RestoreMode.MANUAL);
 		}
 
 		/// <summary>
@@ -439,15 +578,15 @@ namespace SmartData.Abstract {
 			return "<missing runtime>";
 		}
 
-		#if UNITY_EDITOR
+	#if UNITY_EDITOR
 		void _EDITOR_UpdateRtValue(){
 			value = value;
 		}
-		#endif
+	#endif
 	}
-	#endregion
+#endregion Variable
 
-	#region Multi
+#region Multi
 	/// <summary>
 	/// Non-generic base for SmartMulti, for Decorator purposes. Do not reference.
 	/// </summary>
@@ -473,7 +612,6 @@ namespace SmartData.Abstract {
 		}
 		/// <summary>
 		/// Get attached decorators of, or derived from, the specified type, without GC allocation.
-		/// See Unity? It's easy.
 		/// </summary>
 		/// <param name="results">Pre-initialised array to pass matching decorators into.</param>
 		/// <returns>Number of decorators found and filled. If supplied array isn't long enough, this will be the length of the array.</returns>
@@ -522,6 +660,9 @@ namespace SmartData.Abstract {
 			}
 			if (_persistent != null){
 				_runtimeList.AddRange(_persistent);
+				for (int i=0; i<_persistent.Length; ++i){
+					_persistent[i].SetMulti(this, i, false);
+				}
 			}
 			UpdateDecorators();
 		}
@@ -570,6 +711,8 @@ namespace SmartData.Abstract {
 						// Will be destroyed on exit play mode in editor
 						TSmart temp = ScriptableObject.CreateInstance<TSmart>();
 						_runtimeList.Add(temp);
+						// Register self as parent
+						temp.SetMulti(this, count-1, true);
 					}
 					OnElementsAdded();
 				} else {
@@ -635,13 +778,14 @@ namespace SmartData.Abstract {
 			return this[index].BindListener(listener);
 		}
 	}
-	#endregion
+#endregion Multi
 
-	#region Sets
+#region Sets
 	/// <summary>
 	/// Abstract base for SmartSets. Do not reference.
+	/// <para />IEnumerable is not implemented to avoid unexpected lack of callbacks.
 	/// </summary>
-	public abstract class SmartSet<TData> : SmartDecorableBase, IEnumerable<TData> {
+	public abstract class SmartSet<TData> : SmartDecorableBase {
 		[SerializeField]
 		protected bool _resetOnSceneChange = false;
 		
@@ -659,19 +803,32 @@ namespace SmartData.Abstract {
 		/// <summary>
 		/// Link to underlying event. Gives access to additional functionality.
 		/// </summary>
-		public IRelayLink<TData, bool> relay {get {return _relay.link;}}
-		protected Relay<TData, bool> _relay = new Relay<TData, bool>();
+		public IRelayLink<SetEventData<TData>> relay {get {return _relay.link;}}
+		protected Relay<SetEventData<TData>> _relay = new Relay<SetEventData<TData>>();
 		
 		public TData this[int index]{
 			get {return _runtimeSet[index];}
 			set {
+				// Auto-bound SmartRefs get bound first time value added/removed after they're queued
+				if (_binder.hasRefsToBind){
+					_binder.AutoBind();
+				}
+
+				var data = new SetEventData<TData>(value, SetOperation.CHANGED, index);
+				if (_hasDecorators){
+					var temp = data;
+					temp = ExecuteDecoratorsOnChanged(temp);
+					data = temp;
+					value = temp.value;
+				}
+
 				_runtimeSet[index] = value;
-				_relay.Dispatch(value, true);
+				_relay.Dispatch(data);
 			}
 		}
 		public int count {get {return _runtimeSet.Count;}}
 
-		#region Lifecycle
+	#region Lifecycle
 		protected override void OnEnable(){
 			base.OnEnable();
 
@@ -684,26 +841,43 @@ namespace SmartData.Abstract {
 		}
 		void OnSceneChanged(UnityEngine.SceneManagement.Scene s0, UnityEngine.SceneManagement.Scene s1){
 			if (_resetOnSceneChange){
-				Restore();
+				Restore(RestoreMode.AUTO);
 			}
 		}
-		protected void Restore(){
-			// Remove all
-			while (_runtimeSet.Count > 0){
-				RemoveAt(_runtimeSet.Count-1);
+		protected void Restore(RestoreMode restore){
+			// Auto-bound SmartRefs get bound first time value added/removed after they're queued
+			if (_binder.hasRefsToBind){
+				_binder.AutoBind();
 			}
-			// Copy persistent data to runtime set
-			for (int i=0; i<_set.Count; ++i){
-				Add(_set[i]);
+			
+			if (_hasDecorators){
+				for (int i=0; i<_decorators.Length; ++i){
+					((SmartSetDecoratorBase<TData>)_decorators[i]).BeginRestore(restore);
+				}
 			}
+
+			// Outer try-finally to allow throw within catch while still ensuring inner finally is executed.
+			try {
+				try {
+					SetAll(_set);
+				} catch {
+					Debug.LogError("Exception thrown during "+name+".Restore(). OnEndRestore will still be called on all decorators. Exception follows.");
+					throw;
+				} finally {
+					// Ensure decorator state always reset correctly
+					for (int i=0; i<_decorators.Length; ++i){
+						((SmartSetDecoratorBase<TData>)_decorators[i]).EndRestore();
+					}
+				}
+			} finally {}
 		}
 		protected override void OnDisable(){
 			base.OnDisable();
 			UnityEngine.SceneManagement.SceneManager.activeSceneChanged -= OnSceneChanged;
 		}
-		#endregion
+	#endregion Lifecycle
 
-		#region Data
+	#region Data
 		public bool Add(TData element, bool allowDuplicates=true){
 			if (allowDuplicates || !_runtimeSet.Contains(element)){
 				// Auto-bound SmartRefs get bound first time value added/removed after they're queued
@@ -711,49 +885,52 @@ namespace SmartData.Abstract {
 					_binder.AutoBind();
 				}
 
+				SetEventData<TData> data = new SetEventData<TData>(element, SetOperation.ADDED, count);
 				if (_hasDecorators){
-					TData temp = element;
-					temp = ExecuteDecoratorsOnChanged(temp, true);
-					_runtimeSet.Add(temp);
-				} else {
-					_runtimeSet.Add(element);
+					var temp = data;
+					temp = ExecuteDecoratorsOnChanged(temp);
+					data = temp;
+					element = temp.value;
 				}
-				_relay.Dispatch(element, true);
+				
+				_runtimeSet.Add(element);
+				_relay.Dispatch(data);
 				return true;
 			}
 			return false;
 		}
-		public bool Remove(TData element){
-			bool result = false;
+		/// <summary>
+		/// Removes element from the set.
+		/// <para />Warning: Decorators which alter the data on remove will not change which element is removed.
+		/// </summary>
+		/// <returns>If successful, index of removed element. Otherwise -1.</returns>
+		public int Remove(TData element){
+			// Auto-bound SmartRefs get bound first time value added/removed after they're queued
+			if (_binder.hasRefsToBind){
+				_binder.AutoBind();
+			}
+			
+			int index = _runtimeSet.IndexOf(element);
+			bool result = index >= 0;
+			var data = new SetEventData<TData>(element, SetOperation.REMOVED, index);
 			if (_hasDecorators){
-				TData temp = element;
-				temp = ExecuteDecoratorsOnChanged(temp, false);
-				result = _runtimeSet.Remove(temp);
-			} else {
-				result = _runtimeSet.Remove(element);
+				// Execute decorators without altering data
+				for (int i=0; i<_decorators.Length; ++i){
+					((SmartSetDecoratorBase<TData>)_decorators[i]).OnChanged(data);
+				}
 			}
 
 			if (result){
+				_runtimeSet.Remove(element);
+
 				// Auto-bound SmartRefs get bound first time value added/removed after they're queued
 				if (_binder.hasRefsToBind){
 					_binder.AutoBind();
 				}
 
-				_relay.Dispatch(element, false);
+				_relay.Dispatch(data);
 			}
-			return result;
-		}
-		TData ExecuteDecoratorsOnChanged(TData element, bool added){
-			for (int i=0; i<_decorators.Length; ++i){
-				element = ((SmartSetDecoratorBase<TData>)_decorators[i]).OnChanged(element, true);
-			}
-			return element;
-		}
-		TData ExecuteDecoratorsOnRemoveAt(TData element, int index){
-			for (int i=0; i<_decorators.Length; ++i){
-				element = ((SmartSetDecoratorBase<TData>)_decorators[i]).OnRemovedAt(element, index);
-			}
-			return element;
+			return index;
 		}
 
 		/// <summary>
@@ -761,51 +938,99 @@ namespace SmartData.Abstract {
 		/// <para />Warning: Decorators which alter the data on remove will not change which element is removed.
 		/// </summary>
 		public bool RemoveAt(int index){
+			// Auto-bound SmartRefs get bound first time value added/removed after they're queued
+			if (_binder.hasRefsToBind){
+				_binder.AutoBind();
+			}
+
+			return RemoveAt(index, SetOperation.REMOVED);
+		}
+		bool RemoveAt(int index, SetOperation operation){
 			TData element = this[index];
 			bool result = _runtimeSet.Count > index;
+			var data = new SetEventData<TData>(element, operation, index);
 			if (_hasDecorators){
-				TData temp = element;
-				temp = ExecuteDecoratorsOnRemoveAt(temp, index);
+				data = ExecuteDecoratorsOnChanged(data);
 			}
+
 			_runtimeSet.RemoveAt(index);
-			
-			_relay.Dispatch(element, false);
+			_relay.Dispatch(data);
 			return result;
+		}
+		public void Clear(){
+			// Auto-bound SmartRefs get bound first time value added/removed after they're queued
+			if (_binder.hasRefsToBind){
+				_binder.AutoBind();
+			}
+
+			if (_hasDecorators){
+				for (int i=0; i<_decorators.Length; ++i){
+					((SmartSetDecoratorBase<TData>)_decorators[i]).BeginClear();
+				}
+			}
+
+			// Outer try-finally to allow throw within catch while still ensuring inner finally is executed.
+			try {
+				try {
+					// Remove all, with all appropriate callbacks
+					while (_runtimeSet.Count > 0){
+						RemoveAt(_runtimeSet.Count-1, SetOperation.CLEARED);
+					}
+				} catch {
+					Debug.LogError("Exception thrown during "+name+".Clear(). OnEndClear will still be called on all decorators. Exception follows.");
+					throw;
+				} finally {
+					// Ensure decorator state always reset correctly
+					for (int i=0; i<_decorators.Length; ++i){
+						((SmartSetDecoratorBase<TData>)_decorators[i]).EndClear();
+					}
+				}
+			} finally {}
 		}
 		/// <summary>
 		/// Reset to initial serialized value.
 		/// </summary>
 		public void SetToDefault(){
-			Restore();
+			// Auto-bound SmartRefs get bound first time value added/removed after they're queued
+			if (_binder.hasRefsToBind){
+				_binder.AutoBind();
+			}
+
+			Restore(RestoreMode.MANUAL);
 		}
 		/// <summary>
 		/// Clear and replace all elements.
 		/// <para />Largely intended for decorator use.
 		/// </summary>
 		public void SetAll(List<TData> set){
-			
+			Clear();
+
+			// Copy new data to runtime set
+			for (int i=0; i<set.Count; ++i){
+				Add(_set[i]);
+			}
 		}
-		#endregion
+	#endregion Data
 
 		/// <summary>
-		/// Bind an event listener which passes the element and whether it was added (true) or removed (false).
+		/// Bind an event listener which passes the element and related metadata.
 		/// <returns>IRelayBinding for easy enabling/disabling, or null if failed.</returns>
-		public IRelayBinding BindListener(System.Action<TData, bool> listener){
+		public IRelayBinding BindListener(System.Action<SetEventData<TData>> listener){
 			return relay.BindListener(listener);
 		}
 		/// <summary>
 		/// Bind an event listener which passes nothing.
 		/// <returns>IRelayBinding for easy enabling/disabling, or null if failed.</returns>
 		public IRelayBinding BindListener(System.Action listener){
-			return relay.BindListener((x,y)=>{listener();});
+			return relay.BindListener((x)=>{listener();});
 		}
 
-		public IEnumerator<TData> GetEnumerator(){
-			return _runtimeSet.GetEnumerator();
-		}
-		IEnumerator IEnumerable.GetEnumerator(){
-			return this.GetEnumerator();
+		SetEventData<TData> ExecuteDecoratorsOnChanged(SetEventData<TData> data){
+			for (int i=0; i<_decorators.Length; ++i){
+				data = ((SmartSetDecoratorBase<TData>)_decorators[i]).OnChanged(data);
+			}
+			return data;
 		}
 	}
-	#endregion
+#endregion Sets
 }

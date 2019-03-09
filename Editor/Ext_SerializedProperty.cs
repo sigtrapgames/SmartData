@@ -16,6 +16,8 @@ namespace UnityEditor {
 			// e.g. propName.Array.data[0] => propName[0]
 			string path = p.propertyPath.Replace(".Array.data[", "[");
 			string[] elements = path.Split('.');
+			System.Type t = o.GetType();
+			// Iterate through property path
 			for (int i=0; i<elements.Length; ++i){
 				if (p.IsArrayElement(elements[i])){
 					string arrayName;
@@ -29,6 +31,25 @@ namespace UnityEditor {
 				}
 			}
 			return o;
+		}
+		public static System.Type GetFieldType(this SerializedProperty p){
+			object o = p.serializedObject.targetObject;
+			// Friendly array syntax - one . per path element
+			// e.g. propName.Array.data[0] => propName[0]
+			string path = p.propertyPath.Replace(".Array.data[", "[");
+			string[] elements = path.Split('.');
+			System.Type t = o.GetType();
+			// Iterate through property path
+			for (int i=0; i<elements.Length; ++i){
+				if (p.IsArrayElement(elements[i])){
+					string arrayName;
+					int j = GetArrayIndex(elements, i, out arrayName);
+					t = t.GetFieldPrivate(arrayName, FLAGS_ALL).FieldType;
+				} else {
+					t = t.GetFieldPrivate(elements[i], FLAGS_ALL).FieldType;
+				}
+			}
+			return t;
 		}
 		public static bool IsArrayElement(this SerializedProperty p){
 			return p.propertyPath.EndsWith("]");

@@ -101,7 +101,7 @@ namespace SmartData.Editors {
 			if (rt == SmartDataRefBase.RefType.MULTI){
 				DrawMultiProperty(fieldPos, property, min, max);					
 			} else {
-				EditorGUI.PropertyField(fieldPos, property.FindPropertyRelative(refPropNames[rt]), GUIContent.none);
+				DrawSmart(fieldPos, property.FindPropertyRelative(refPropNames[rt]), min, max);
 			}
 
 			// Draw event if type supports it

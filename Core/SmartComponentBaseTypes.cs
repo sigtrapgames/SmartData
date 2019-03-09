@@ -60,6 +60,9 @@ namespace SmartData.Abstract {
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)][ForceHideEvent]
 		protected TRef _data;
 
+		[SerializeField, Tooltip("Value to set when Set() is called")]
+		TData _valueToSet;
+
 		protected override bool bindEvents {get {return false;}}
 
 		public override bool isValid {get {return _data.isValid;}}
@@ -69,6 +72,10 @@ namespace SmartData.Abstract {
 		}
 		public void Dispatch(){
 			_data.Dispatch();
+		}
+		/// <summary> For UnityEvent calls on data types UnityEvent won't serialize </summary>
+		public void Set(){
+			value = _valueToSet;
 		}
 		protected override void EnableUnityEvents(bool enable){}	// Write-only - UnityEvent never used.
 	}

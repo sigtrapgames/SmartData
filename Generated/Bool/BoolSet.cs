@@ -36,13 +36,21 @@ namespace SmartData.SmartBool {
 		Data.BoolVar.BoolEvent _onAdd;
 		[SerializeField]
 		Data.BoolVar.BoolEvent _onRemove;
+		[SerializeField]
+		Data.BoolVar.BoolEvent _onChange;
 		
-		protected override System.Action<bool, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
+		protected override System.Action<SetEventData<bool>> GetUnityEventInvoke(){
+			return (d)=>{
+				switch (d.operation){
+					case SetOperation.ADDED:
+						_onAdd.Invoke(d.value);
+						break;
+					case SetOperation.REMOVED:
+						_onRemove.Invoke(d.value);
+						break;
+					case SetOperation.CHANGED:
+						_onChange.Invoke(d.value);
+						break;
 				}
 			};
 		}
@@ -58,22 +66,24 @@ namespace SmartData.SmartBool {
 		Data.BoolVar.BoolEvent _onAdd;
 		[SerializeField]
 		Data.BoolVar.BoolEvent _onRemove;
+		[SerializeField]
+		Data.BoolVar.BoolEvent _onChange;
 		
-		protected override System.Action<bool, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
-				}
-			};
+		protected override System.Action<SetEventData<bool>> GetUnityEventInvoke(){
+			return InvokeUnityEvent;
 		}
 		
-		protected sealed override void InvokeUnityEvent(bool value, bool added){
-			if (added){
-				_onAdd.Invoke(value);
-			} else {
-				_onRemove.Invoke(value);
+		protected sealed override void InvokeUnityEvent(SetEventData<bool> d){
+			switch (d.operation){
+				case SetOperation.ADDED:
+					_onAdd.Invoke(d.value);
+					break;
+				case SetOperation.REMOVED:
+					_onRemove.Invoke(d.value);
+					break;
+				case SetOperation.CHANGED:
+					_onChange.Invoke(d.value);
+					break;
 			}
 		}
 		

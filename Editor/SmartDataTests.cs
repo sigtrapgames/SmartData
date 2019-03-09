@@ -555,8 +555,18 @@ namespace SmartData.Editors.Testing {
 			Assert.That(s.count == 1);
 			Assert.That(s[0] == 100f);
 			Assert.That(_f == 100f);
-			r.Remove(100f);
+			r[0] = 5f;
+			Assert.That(s.count == 1);
+			Assert.That(s[0] == 5f);
+			Assert.That(_f == 10f);
+			r.Remove(5);
 			Assert.That(s.count == 0);
+			Assert.That(_f == -5);
+			r.Add(100f);
+			r.Add(200f);
+			r.RemoveAt(0);
+			Assert.That(s.count == 1);
+			Assert.That(s[0] == 200f);
 			Assert.That(_f == -100f);
 
 			Destroy(s);
@@ -728,6 +738,7 @@ namespace SmartData.Editors.Testing {
 			r.GetType().GetFieldPrivate("_smartSet", b).SetValue(r, smart);
 			r.GetType().GetFieldPrivate("_onAdd", b).SetValue(r, new SmartFloat.Data.FloatVar.FloatEvent());
 			r.GetType().GetFieldPrivate("_onRemove", b).SetValue(r, new SmartFloat.Data.FloatVar.FloatEvent());
+			r.GetType().GetFieldPrivate("_onChange", b).SetValue(r, new SmartFloat.Data.FloatVar.FloatEvent());
 			if (r is ISerializationCallbackReceiver){
 				((ISerializationCallbackReceiver)r).OnAfterDeserialize();
 			}
@@ -818,11 +829,17 @@ namespace SmartData.Editors.Testing {
 		void OnUpdated(float f){
 			_f = f;
 		}
-		void OnSetChanged(float f, bool added){
-			if (added){
-				OnAdded(f);
-			} else {
-				OnRemoved(f);
+		void OnSetChanged(SetEventData<float> d){
+			switch (d.operation){
+				case SetOperation.ADDED:
+					OnAdded(d.value);
+					break;
+				case SetOperation.REMOVED:
+					OnRemoved(d.value);
+					break;
+				case SetOperation.CHANGED:
+					OnChanged(d.value);
+					break;
 			}
 		}
 		void OnAdded(float f){
@@ -830,6 +847,9 @@ namespace SmartData.Editors.Testing {
 		}
 		void OnRemoved(float f){
 			_f = -f;
+		}
+		void OnChanged(float f){
+			_f = 2*f;
 		}
 		void OnEvent(){
 			++_raised;

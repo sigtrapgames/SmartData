@@ -81,9 +81,9 @@ namespace SmartData.Interfaces {
 		int count {get;}
 		
 		TData this[int index]{get;}
-		IRelayLink<TData, bool> relay {get;}
+		IRelayLink<SetEventData<TData>> relay {get;}
 		IRelayBinding BindListener(System.Action listener);
-		IRelayBinding BindListener(System.Action<TData, bool> listener);
+		IRelayBinding BindListener(System.Action<SetEventData<TData>> listener);
 	}
 	/// <summary>
 	/// <para />A typed SmartSet whose elements can be read and written.
@@ -94,7 +94,7 @@ namespace SmartData.Interfaces {
 	public interface ISmartSetWriter<TData> : ISmartObject {
 		TData this[int index]{get;set;}
 		bool Add(TData element, bool allowDuplicates=true);
-		bool Remove(TData element);
+		int Remove(TData element);
 	}
 	/// <summary>
 	/// <para />A SmartSet whose elements can be removed by index.

@@ -91,7 +91,7 @@ namespace SmartData.Abstract {
 	public abstract class SmartDataDecoratorBase<TData> : SmartDecoratorBase, ISmartRefOwnerRedirect {
 		SmartVar<TData> _owner;
 		public SmartVar<TData> owner {get {return _owner;}}
-		public virtual TData OnUpdated(TData oldValue, TData newValue, bool isResettingToDefault){return newValue;}
+		public virtual TData OnUpdated(TData oldValue, TData newValue, RestoreMode restoreMode){return newValue;}
 		public virtual void OnDispatched(TData value){}
 		public override void SetOwner(SmartBindableBase owner){
 			this._owner = (SmartVar<TData>)owner;
@@ -111,8 +111,65 @@ namespace SmartData.Abstract {
 	public abstract class SmartSetDecoratorBase<TData> : SmartDecoratorBase {
 		SmartSet<TData> _owner;
 		public SmartSet<TData> owner {get {return _owner;}}
-		public virtual TData OnChanged(TData value, bool added){return value;}
-		public virtual TData OnRemovedAt(TData value, int index){return value;}
+		/// <summary>
+		/// If NONE, data is being set normally.
+		/// <para \>If AUTO, data is being reset automatically on scene change.
+		/// <para \>If MANUAL, data is being reset manually by SetToDefault().
+		/// <para \>Decorators aren't executed in INIT mode (runtime value initialisation in OnEnable).
+		/// </summary>
+		protected RestoreMode _currentRestoreMode {get; private set;}
+		protected bool _isClearing {get; private set;}
+		public virtual SetEventData<TData> OnChanged(SetEventData<TData> data){return data;}
+		
+		/// <summary>Called by SmartSet when Restore() is called. Do not call manually.</summary>
+		public void BeginRestore(RestoreMode restore){
+			if (restore == RestoreMode.NONE){
+				throw new System.InvalidOperationException("Cannot begin restore with RestoreMode.NONE");
+			}
+			_currentRestoreMode = restore;
+			OnBeginRestore();
+		}
+		/// <summary>Called by SmartSet when Restore() completes. Do not call manually.</summary>
+		public void EndRestore(){
+			if (_currentRestoreMode == RestoreMode.NONE){
+				throw new System.InvalidOperationException("Cannot end restore - no restore in progress");
+			}
+			_currentRestoreMode = RestoreMode.NONE;
+			OnEndRestore();
+		}
+		/// <summary>
+		/// If Restore() has been called on owner, each element will be removed, then originals added.
+		/// <para \>Before this process starts, this method will be called.
+		/// </summary>
+		protected virtual void OnBeginRestore(){}
+		/// <summary>
+		/// If Restore() has been called on owner, each element will be removed, then originals added.
+		/// <para \>After this process ends, this method will be called (even if exceptions are thrown during Restore).
+		/// </summary>
+		protected virtual void OnEndRestore(){}
+
+		/// <summary>Called by SmartSet when Clear() is called. Do not call manually.</summary>
+		public void BeginClear(){
+			_isClearing = true;
+		}
+		/// <summary>Called by SmartSet when Clear() completes. Do not call manually.</summary>
+		public void EndClear(){
+			_isClearing = false;
+		}
+
+		/// <summary>
+		/// If Clear() has been called on owner, each element will be removed.
+		/// <para \>Before this process starts, this method will be called.
+		/// <para \>Clear() is also called during restore - check _currentRestoreMode to see if this is happening.
+		/// </summary>
+		protected virtual void OnBeginClear(){}
+		/// <summary>
+		/// If Clear() has been called on owner, each element will be removed.
+		/// <para \>After this process ends, this method will be called (even if exceptions are thrown during Restore).
+		/// <para \>Clear() is also called during restore - check _currentRestoreMode to see if this is happening.
+		/// </summary>
+		protected virtual void OnEndClear(){}
+
 		public override void SetOwner(SmartBindableBase owner){
 			this._owner = (SmartSet<TData>)owner;
 		}

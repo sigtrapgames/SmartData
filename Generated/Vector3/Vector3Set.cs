@@ -36,13 +36,21 @@ namespace SmartData.SmartVector3 {
 		Data.Vector3Var.Vector3Event _onAdd;
 		[SerializeField]
 		Data.Vector3Var.Vector3Event _onRemove;
+		[SerializeField]
+		Data.Vector3Var.Vector3Event _onChange;
 		
-		protected override System.Action<Vector3, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
+		protected override System.Action<SetEventData<Vector3>> GetUnityEventInvoke(){
+			return (d)=>{
+				switch (d.operation){
+					case SetOperation.ADDED:
+						_onAdd.Invoke(d.value);
+						break;
+					case SetOperation.REMOVED:
+						_onRemove.Invoke(d.value);
+						break;
+					case SetOperation.CHANGED:
+						_onChange.Invoke(d.value);
+						break;
 				}
 			};
 		}
@@ -58,22 +66,24 @@ namespace SmartData.SmartVector3 {
 		Data.Vector3Var.Vector3Event _onAdd;
 		[SerializeField]
 		Data.Vector3Var.Vector3Event _onRemove;
+		[SerializeField]
+		Data.Vector3Var.Vector3Event _onChange;
 		
-		protected override System.Action<Vector3, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
-				}
-			};
+		protected override System.Action<SetEventData<Vector3>> GetUnityEventInvoke(){
+			return InvokeUnityEvent;
 		}
 		
-		protected sealed override void InvokeUnityEvent(Vector3 value, bool added){
-			if (added){
-				_onAdd.Invoke(value);
-			} else {
-				_onRemove.Invoke(value);
+		protected sealed override void InvokeUnityEvent(SetEventData<Vector3> d){
+			switch (d.operation){
+				case SetOperation.ADDED:
+					_onAdd.Invoke(d.value);
+					break;
+				case SetOperation.REMOVED:
+					_onRemove.Invoke(d.value);
+					break;
+				case SetOperation.CHANGED:
+					_onChange.Invoke(d.value);
+					break;
 			}
 		}
 		

@@ -36,13 +36,21 @@ namespace SmartData.SmartString {
 		Data.StringVar.StringEvent _onAdd;
 		[SerializeField]
 		Data.StringVar.StringEvent _onRemove;
+		[SerializeField]
+		Data.StringVar.StringEvent _onChange;
 		
-		protected override System.Action<string, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
+		protected override System.Action<SetEventData<string>> GetUnityEventInvoke(){
+			return (d)=>{
+				switch (d.operation){
+					case SetOperation.ADDED:
+						_onAdd.Invoke(d.value);
+						break;
+					case SetOperation.REMOVED:
+						_onRemove.Invoke(d.value);
+						break;
+					case SetOperation.CHANGED:
+						_onChange.Invoke(d.value);
+						break;
 				}
 			};
 		}
@@ -58,22 +66,24 @@ namespace SmartData.SmartString {
 		Data.StringVar.StringEvent _onAdd;
 		[SerializeField]
 		Data.StringVar.StringEvent _onRemove;
+		[SerializeField]
+		Data.StringVar.StringEvent _onChange;
 		
-		protected override System.Action<string, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
-				}
-			};
+		protected override System.Action<SetEventData<string>> GetUnityEventInvoke(){
+			return InvokeUnityEvent;
 		}
 		
-		protected sealed override void InvokeUnityEvent(string value, bool added){
-			if (added){
-				_onAdd.Invoke(value);
-			} else {
-				_onRemove.Invoke(value);
+		protected sealed override void InvokeUnityEvent(SetEventData<string> d){
+			switch (d.operation){
+				case SetOperation.ADDED:
+					_onAdd.Invoke(d.value);
+					break;
+				case SetOperation.REMOVED:
+					_onRemove.Invoke(d.value);
+					break;
+				case SetOperation.CHANGED:
+					_onChange.Invoke(d.value);
+					break;
 			}
 		}
 		

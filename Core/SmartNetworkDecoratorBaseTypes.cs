@@ -9,7 +9,7 @@ namespace SmartData.Abstract {
 	/// <para />Implement other behaviour to call Receive when data is replicated.
 	/// </summary>
 	public abstract class SmartNetworkDataDecoratorBase<TData> : SmartDataDecoratorBase<TData> {
-		public override TData OnUpdated(TData oldValue, TData newValue, bool isResettingToDefault){
+		public override TData OnUpdated(TData oldValue, TData newValue, RestoreMode restoreMode){
 			Send(newValue);
 			return newValue;
 		}
@@ -45,43 +45,29 @@ namespace SmartData.Abstract {
 		}
 	}
 	public abstract class SmartNetworkSetDecoratorBase<TData> : SmartSetDecoratorBase<TData> {
-		public override TData OnChanged(TData newValue, bool added){
-			if (added){
-				SendAdd(newValue);
-			} else {
-				SendRemove(newValue);
+		public override SetEventData<TData> OnChanged(SetEventData<TData> data){
+			Send(data, _currentRestoreMode);
+			return data;
+		}
+		protected abstract void Send(SetEventData<TData> data, RestoreMode restoreMode);
+		/// <summary>
+		/// Call to receive an update from the network.
+		/// </summary>
+		public void Receive(SetEventData<TData> data){
+			this.active = false;
+			
+			switch (data.operation){
+				case SetOperation.ADDED:
+					owner.Add(data.value);
+					break;
+				case SetOperation.REMOVED:
+					owner.RemoveAt(data.index);
+					break;
+				case SetOperation.CHANGED:
+					owner[data.index] = data.value;
+					break;
 			}
-			return newValue;
-		}
-		public override TData OnRemovedAt(TData value, int index){
-			SendRemovedAt(value, index);
-			return value;
-		}
-		protected abstract void SendAdd(TData value);
-		protected abstract void SendRemove(TData value);
-		protected abstract void SendRemovedAt(TData value, int index);
-		/// <summary>
-		/// Call to receive an update from the network.
-		/// </summary>
-		public void ReceiveAdd(TData value){
-			this.active = false;
-			owner.Add(value);
-			this.active = true;
-		}
-		/// <summary>
-		/// Call to receive an update from the network.
-		/// </summary>
-		public void ReceiveRemove(TData value){
-			this.active = false;
-			owner.Remove(value);
-			this.active = true;
-		}
-		/// <summary>
-		/// Call to receive an update from the network.
-		/// </summary>
-		public void ReceiveRemoveAt(int index){
-			this.active = false;
-			owner.RemoveAt(index);
+			
 			this.active = true;
 		}
 	}
