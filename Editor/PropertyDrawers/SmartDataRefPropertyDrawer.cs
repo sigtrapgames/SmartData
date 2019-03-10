@@ -101,18 +101,18 @@ namespace SmartData.Editors {
 			if (rt == SmartDataRefBase.RefType.MULTI){
 				DrawMultiProperty(fieldPos, property, min, max);					
 			} else {
-				DrawSmart(fieldPos, property.FindPropertyRelative(refPropNames[rt]), min, max);
+				DrawSmart(fieldPos, property.FindPropertyRelative(refPropNames[rt]), min, max, rt != SmartDataRefBase.RefType.LOCAL);
 			}
 
 			// Draw event if type supports it
-			bool eventable = false;
+			_isEventable = false;
 			for (int i=0; i<RTS_EVENTABLE.Length; ++i){
 				if (RTS_EVENTABLE[i] == rt){
-					eventable = true;
+					_isEventable = true;
 					break;
 				}
 			}
-			if (eventable){
+			if (_isEventable){
 				if (IsForceHideEvent(property, fieldInfo)) return;
 				DrawEvent(property, evtPos, min, max, forceExpand);
 			} else if (forceEventable){
