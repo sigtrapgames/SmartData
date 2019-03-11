@@ -785,7 +785,7 @@ namespace SmartData.Abstract {
 	/// Abstract base for SmartSets. Do not reference.
 	/// <para />IEnumerable is not implemented to avoid unexpected lack of callbacks.
 	/// </summary>
-	public abstract class SmartSet<TData> : SmartDecorableBase {
+	public abstract class SmartSet<TData> : SmartDecorableBase, IEnumerable<TData> {
 		[SerializeField]
 		protected bool _resetOnSceneChange = false;
 		
@@ -878,6 +878,12 @@ namespace SmartData.Abstract {
 	#endregion Lifecycle
 
 	#region Data
+		IEnumerator<TData> IEnumerable<TData>.GetEnumerator(){
+			return _runtimeSet.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return _runtimeSet.GetEnumerator();
+		}
 		public bool Add(TData element, bool allowDuplicates=true){
 			if (allowDuplicates || !_runtimeSet.Contains(element)){
 				// Auto-bound SmartRefs get bound first time value added/removed after they're queued

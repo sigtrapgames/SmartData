@@ -597,7 +597,7 @@ namespace SmartData.Abstract {
 	/// <summary>
 	/// Abstract base for SmartSetRefs. Do not reference.
 	/// </summary>
-	public abstract class SmartSetRefBase<TData, TWrite> : SmartSetRefBase, ISerializationCallbackReceiver
+	public abstract class SmartSetRefBase<TData, TWrite> : SmartSetRefBase, ISerializationCallbackReceiver, IEnumerable<TData>
 		where TWrite : SmartSet<TData>, ISmartSet<TData>
 	{
 		#if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -655,6 +655,13 @@ namespace SmartData.Abstract {
 				if (!_isEventable) return null;
 				return _smartSet.relay;
 			}
+		}
+
+		IEnumerator<TData> IEnumerable<TData>.GetEnumerator(){
+			return _useList ? _runtimeList.GetEnumerator() : _smartSet.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return _useList ? _runtimeList.GetEnumerator() : _smartSet.GetEnumerator();
 		}
 
 		public IRelayBinding BindListener(System.Action<SetEventData<TData>> listener){

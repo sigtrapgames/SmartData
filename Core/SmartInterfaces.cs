@@ -77,7 +77,7 @@ namespace SmartData.Interfaces {
 	/// <para />* BindListener(void)
 	/// <para />* BindListener(TData,bool)
 	/// </summary>
-	public interface ISmartSet<TData> : ISmartObject {
+	public interface ISmartSet<TData> : ISmartObject, IEnumerable<TData> {
 		int count {get;}
 		
 		TData this[int index]{get;}
