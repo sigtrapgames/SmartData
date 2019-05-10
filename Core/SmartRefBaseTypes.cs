@@ -493,13 +493,26 @@ namespace SmartData.Abstract {
 		}
 
 		protected TMulti _multi {get {return _smartMulti;}}
+
+		/// <summary>
+		/// Raised when a element (SmartObject or local list entry) is added or removed (not currently supported) to/from this MultiRef.
+		/// First int is new count, second is old count. Returns null if no underlying SmartMulti.
+		/// </summary>
+		public IRelayLink<int, int> onElementCountChanged {
+			get {
+				if (_multi){
+					return _multi.onElementCountChanged;
+				}
+				return null;
+			}	
+		}
 	}
 	/// <summary>
 	/// Abstract base for SmartDataMultiRefs. Do not reference. Will not serialize.
 	/// </summary>
 	public abstract class SmartDataMultiRef<TList, TData, TVar> : 
-		SmartMultiRef<TList, TVar>, ISmartDataMultiRefReader<TData, TVar>
-		where TList:SmartMulti<TData, TVar>
+		SmartMultiRef<TList, TVar>, ISmartDataMultiRefReader<TData, TVar>, IEnumerable<TData>
+		where TList:SmartMulti<TData, TVar>, IEnumerable<TData>
 		where TVar:SmartVar<TData>
 	{
 		#if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -519,6 +532,13 @@ namespace SmartData.Abstract {
 			get {return _multi[index].defaultValue;}
 		}
 		public IRelayLink<TData> relay {get {return _multi[index].relay;}}
+
+		public IEnumerator<TData> GetEnumerator(){
+			return _multi.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return ((IEnumerable)_multi).GetEnumerator();
+		}
 
 		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
 			var result = relay.BindListener(listener);
@@ -707,7 +727,7 @@ namespace SmartData.Abstract {
 				bool result = _smartSet.Add(element, allowDuplicates);
 				if (!unityEventOnReceive){
 					int index = _smartSet.count-1;
-					InvokeUnityEvent(new SetEventData<TData>(_smartSet[index], SetOperation.ADDED, index));
+					InvokeUnityEvent(new SetEventData<TData>(_smartSet[index], default(TData), SetOperation.ADDED, index));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
@@ -724,7 +744,7 @@ namespace SmartData.Abstract {
 			} else {
 				int result = _smartSet.Remove(element);
 				if (result >= 0 && !unityEventOnReceive){
-					InvokeUnityEvent(new SetEventData<TData>(element, SetOperation.REMOVED, result));
+					InvokeUnityEvent(new SetEventData<TData>(element, element, SetOperation.REMOVED, result));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
@@ -739,7 +759,7 @@ namespace SmartData.Abstract {
 				TData element = _runtimeList[index];
 				_runtimeList.RemoveAt(index);
 				if (!unityEventOnReceive){
-					InvokeUnityEvent(new SetEventData<TData>(element, SetOperation.REMOVED, index));
+					InvokeUnityEvent(new SetEventData<TData>(element, element, SetOperation.REMOVED, index));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
