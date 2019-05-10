@@ -36,15 +36,21 @@ namespace SmartData {
 		CHANGED = 3,
 		/// <summary>Data was inserted into the SmartSet. Index is that of new element. NOT YET USED.</summary>
 		INSERTED = 4,
-		/// <summart>SmartSet is being cleared.</summary>
+		/// <summary>SmartSet is being cleared. Callback will be fired for each element individually with its index.</summary>
 		CLEARED = 5
 	}
 	public struct SetEventData<T> {
+		/// <summary>The new value.</summary>
 		public T value {get; private set;}
+		/// <summary>The previous value, if operation is CHANGED.</summary>
+		public T previousValue {get; private set;}
+		/// <summary>What operation was called on the set to fire this callback?</summary>
 		public SetOperation operation {get; private set;}
+		/// <summary>Index of the element affected by this operation.</summary>
 		public int index {get; private set;}
-		public SetEventData(T data, SetOperation operation, int index){
+		public SetEventData(T data, T previousData, SetOperation operation, int index){
 			this.value = data;
+			this.previousValue = previousData;
 			this.operation = operation;
 			this.index = index;
 		}
@@ -602,6 +608,13 @@ namespace SmartData.Abstract {
 		public abstract int count {get;}
 
 		/// <summary>
+		/// Raised when a element (SmartObject or local list entry) is added or removed (not currently supported) to/from this MultiRef.
+		/// First int is new count, second is old count.
+		/// </summary>
+		public IRelayLink<int, int> onElementCountChanged {get {return _onElementCountChanged.link;}}
+		protected Relay<int, int> _onElementCountChanged = new Relay<int, int>();
+
+		/// <summary>
 		/// Get attached decorators of, or derived from, the specified type.
 		/// </summary>
 		public TDecorator[] GetDecorators<TDecorator>() where TDecorator : SmartDecoratorBase {
@@ -663,6 +676,7 @@ namespace SmartData.Abstract {
 				for (int i=0; i<_persistent.Length; ++i){
 					_persistent[i].SetMulti(this, i, false);
 				}
+				_onElementCountChanged.Dispatch(0, _runtimeList.Count);
 			}
 			UpdateDecorators();
 		}
@@ -707,17 +721,20 @@ namespace SmartData.Abstract {
 			if (count <= maxIndex){
 				if (_maxSize <= 0 || index < _maxSize){
 					while (count <= index){
+						int oldCount = count;
 						// Create runtime instance as new element
 						// Will be destroyed on exit play mode in editor
 						TSmart temp = ScriptableObject.CreateInstance<TSmart>();
 						_runtimeList.Add(temp);
 						// Register self as parent
 						temp.SetMulti(this, count-1, true);
+						_onElementCountChanged.Dispatch(oldCount, count);
 					}
 					OnElementsAdded();
 				} else {
 					throw new System.AccessViolationException("Attempting to get index "+index.ToString()+" from a SmartMulti with a maximum size of "+_maxSize.ToString());
 				}
+
 			}
 
 			// Iterate through ALL binding requests as can be queued after elements already exist
@@ -749,7 +766,7 @@ namespace SmartData.Abstract {
 	/// <summary>
 	/// Abstract base for SmartDataMultis. Do not reference. Will not serialize.
 	/// </summary>
-	public abstract class SmartMulti<TData, TSmart> : SmartMulti<TSmart> 
+	public abstract class SmartMulti<TData, TSmart> : SmartMulti<TSmart>, IEnumerable<TData> 
 		where TSmart : SmartVar<TData>
 	{
 		#if UNITY_EDITOR
@@ -776,6 +793,44 @@ namespace SmartData.Abstract {
 		/// <returns>IRelayBinding for easy enabling/disabling, or null if failed.</returns>
 		public IRelayBinding BindListener(System.Action listener, int index){
 			return this[index].BindListener(listener);
+		}
+
+		IEnumerator<TData> IEnumerable<TData>.GetEnumerator(){
+			return new MultiEnumerator<TData, SmartMulti<TData, TSmart>, TSmart>(this);
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return new MultiEnumerator<TData, SmartMulti<TData, TSmart>, TSmart>(this);
+		}
+
+		public class MultiEnumerator<TData, TMulti, TSmart> : IEnumerator<TData> 
+			where TMulti : SmartMulti<TData, TSmart>
+			where TSmart : SmartVar<TData>
+		{
+			TMulti _multi;
+			int _index;
+
+			public MultiEnumerator(TMulti m){
+				_multi = m;
+			}
+
+			TData IEnumerator<TData>.Current {
+				get {
+					return _multi.GetValue(_index);
+				}
+			}
+			public bool MoveNext(){
+				++_index;
+				return _index < _multi.count;
+			}
+			public void Reset(){
+				_index = 0;
+			}
+			object IEnumerator.Current {
+				get {
+					return _multi.GetValue(_index);
+				}
+			}
+			public void Dispose(){}
 		}
 	}
 #endregion Multi
@@ -814,7 +869,7 @@ namespace SmartData.Abstract {
 					_binder.AutoBind();
 				}
 
-				var data = new SetEventData<TData>(value, SetOperation.CHANGED, index);
+				var data = new SetEventData<TData>(value, _runtimeSet[index], SetOperation.CHANGED, index);
 				if (_hasDecorators){
 					var temp = data;
 					temp = ExecuteDecoratorsOnChanged(temp);
@@ -891,7 +946,7 @@ namespace SmartData.Abstract {
 					_binder.AutoBind();
 				}
 
-				SetEventData<TData> data = new SetEventData<TData>(element, SetOperation.ADDED, count);
+				SetEventData<TData> data = new SetEventData<TData>(element, default(TData), SetOperation.ADDED, count);
 				if (_hasDecorators){
 					var temp = data;
 					temp = ExecuteDecoratorsOnChanged(temp);
@@ -918,7 +973,7 @@ namespace SmartData.Abstract {
 			
 			int index = _runtimeSet.IndexOf(element);
 			bool result = index >= 0;
-			var data = new SetEventData<TData>(element, SetOperation.REMOVED, index);
+			var data = new SetEventData<TData>(element, element, SetOperation.REMOVED, index);
 			if (_hasDecorators){
 				// Execute decorators without altering data
 				for (int i=0; i<_decorators.Length; ++i){
@@ -954,7 +1009,7 @@ namespace SmartData.Abstract {
 		bool RemoveAt(int index, SetOperation operation){
 			TData element = this[index];
 			bool result = _runtimeSet.Count > index;
-			var data = new SetEventData<TData>(element, operation, index);
+			var data = new SetEventData<TData>(element, element, operation, index);
 			if (_hasDecorators){
 				data = ExecuteDecoratorsOnChanged(data);
 			}
