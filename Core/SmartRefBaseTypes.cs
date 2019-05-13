@@ -491,6 +491,9 @@ namespace SmartData.Abstract {
 				}
 			}
 		}
+		public int count {
+			get {return _multi == null ? 0 : _multi.count;}
+		}
 
 		protected TMulti _multi {get {return _smartMulti;}}
 
@@ -540,12 +543,17 @@ namespace SmartData.Abstract {
 			return ((IEnumerable)_multi).GetEnumerator();
 		}
 
-		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
-			var result = relay.BindListener(listener);
+		/// <summary>Bind a listener to a specific SmartObject element within the referenced Multi.</summary>
+		public IRelayBinding BindListener(System.Action<TData> listener, int multiIndex, bool callNow=false){
+			var result = _multi[multiIndex].BindListener(listener);
 			if (callNow){
-				_multi[index].Dispatch();
+				_multi[multiIndex].Dispatch();
 			}
 			return result;
+		}
+		/// <summary>Bind a listener to the element specified by this instance's current index field.</summary>
+		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
+			return BindListener(listener, index, callNow);
 		}
 		public IRelayBinding BindListener(System.Action listener){
 			return relay.BindListener((x)=>{listener();});

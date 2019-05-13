@@ -149,6 +149,7 @@ namespace UnityEditor {
 					fi = t.GetFieldPrivate(elements[i], FLAGS_ALL);
 				}
 				if (fi == null) return null;
+				t = fi.FieldType;
 			}
 			return fi;
 		}

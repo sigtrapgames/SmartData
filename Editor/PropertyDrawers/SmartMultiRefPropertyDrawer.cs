@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Linq;
 
 namespace SmartData.Editors {
-	[CustomPropertyDrawer(typeof(SmartDataMultiRef<,,>), true)]
+	[CustomPropertyDrawer(typeof(SmartRefMultiableBase), true)]
 	public class SmartMultiRefPropertyDrawer : SmartRefPropertyDrawerBase {
 		protected override bool _isEventable {get {return true;}}
 		protected override void DrawGUI(Rect position, SerializedProperty property, GUIContent label, Vector2 min, Vector2 max){
