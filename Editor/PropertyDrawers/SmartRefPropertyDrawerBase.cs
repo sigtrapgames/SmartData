@@ -351,7 +351,7 @@ namespace SmartData.Editors {
 			Rect fieldPos = new Rect(position.x, position.y, position.width - (18 + SPACING), position.height);
 			EditorGUI.PropertyField(fieldPos, property, GUIContent.none);
 
-			if (showCreateBtn){
+			if (showCreateBtn && !Application.isPlaying){
 				Rect createBtnPos = new Rect();
 				createBtnPos.xMin = fieldPos.max.x + SPACING;// - SmartEditorUtils.indent;
 				createBtnPos.xMax = max.x;

@@ -676,7 +676,7 @@ namespace SmartData.Abstract {
 				for (int i=0; i<_persistent.Length; ++i){
 					_persistent[i].SetMulti(this, i, false);
 				}
-				_onElementCountChanged.Dispatch(0, _runtimeList.Count);
+				_onElementCountChanged.Dispatch(_runtimeList.Count, 0);
 			}
 			UpdateDecorators();
 		}
@@ -728,7 +728,7 @@ namespace SmartData.Abstract {
 						_runtimeList.Add(temp);
 						// Register self as parent
 						temp.SetMulti(this, count-1, true);
-						_onElementCountChanged.Dispatch(oldCount, count);
+						_onElementCountChanged.Dispatch(count, oldCount);
 					}
 					OnElementsAdded();
 				} else {
