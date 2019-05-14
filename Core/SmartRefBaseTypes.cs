@@ -531,8 +531,17 @@ namespace SmartData.Abstract {
 		public TData value {
 			get {return _multi[index].value;}
 		}
+		/// <summary>
+		/// Read-only access to the indexed SmartVar's default value.
+		/// </summary>
 		public TData defaultValue {
 			get {return _multi[index].defaultValue;}
+		}
+		/// <summary>
+		/// Read-only access to SmartVar values by index.
+		/// </summary>
+		public TData this[int index]{
+			get {return _multi[index].value;}
 		}
 		public IRelayLink<TData> relay {get {return _multi[index].relay;}}
 
@@ -576,11 +585,17 @@ namespace SmartData.Abstract {
 		protected sealed override bool _EDITOR_GetIsWritable(){return true;}
 		#endif
 
+		/// <summary>
+		/// The indexed SmartVar value.
+		/// </summary>
 		new public TData value {
 			get {return base.value;}
 			set {this[index] = value;}
 		}
-		public TData this[int index]{
+		/// <summary>
+		/// Underlying SmartVar values by index.
+		/// </summary>
+		new public TData this[int index]{
 			get {return _multi[index].value;}
 			set {
 				_multi[index].value = value;
