@@ -87,7 +87,14 @@ namespace SmartData.Editors {
 						_args[0] = i;
 						var val = _getValue.Invoke(multi, _args);
 						if (val != null){
-							EditorGUILayout.LabelField(val.ToString(), wValue);
+							var o = (val as UnityEngine.Object);
+							if (o){
+								if (GUILayout.Button(val.ToString())){
+									EditorGUIUtility.PingObject(o);
+								} 
+							} else {
+								EditorGUILayout.LabelField(val.ToString(), wValue);
+							}
 							hasVal = true;
 						}
 					}
