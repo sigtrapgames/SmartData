@@ -6,21 +6,58 @@ using SmartData.Abstract;
 using SmartData.Interfaces;
 using System.Linq;
 
-namespace SmartData.Abstract {	
+namespace SmartData.Abstract {
+	[System.Flags]
+	public enum BlockFlags {
+		/// <summary>This decorator does not block dispatch, following decorators or data update.</summary>
+		NONE = 0,
+		/// <summary>This decorator blocks event dispatch.</summary>
+		DISPATCH = 1,
+		/// <summary>This decorator blocks following decorators from being called.</summary>
+		DECORATORS = 2,
+		/// <summary>This decorator blocks data from being updated.</summary>
+		DATA = 4
+	}
+	public static class Ext_BlockMode {
+		public static bool Contains(this BlockFlags mask, BlockFlags value){
+			return (mask & value) == value;
+		}
+	}
 	public abstract class SmartDecoratorBase : ScriptableObject {
 		[SerializeField]
 		bool _active = true;
+		bool _runtimeActive;
+
 		/// <summary>
 		/// If false, decorator won't be used. Works like MonoBehaviour.enabled.
 		/// </summary>
 		public bool active {
-			get {return _active;}
+		#if UNITY_EDITOR
+			get {
+				return Application.isPlaying ? _runtimeActive : _active;
+			}
 			set {
-				if (value != _active){
-					_active = value;
-					OnSetActive(_active);
+				if (Application.isPlaying){
+					if (value != _runtimeActive){
+						_runtimeActive = value;
+						OnSetActive(_runtimeActive);
+					}
+				} else {
+					if (value != _active){
+						_active = value;
+						OnSetActive(_active);
+					}
 				}
 			}
+		#else
+			get {return _runtimeActive;}
+			set {
+				if (value != _runtimeActive){
+					_runtimeActive = value;
+					OnSetActive(_runtimeActive);
+				}
+			}
+		#endif
 		}
 
 		/// <summary>
@@ -55,7 +92,15 @@ namespace SmartData.Abstract {
 		/// <para /> NOT called by ScriptableObject.OnDisable() as timing is ill-defined.
 		/// </summary>
 		protected virtual void OnDeactivate(){}
-		public abstract void SetOwner(SmartBindableBase owner);
+		public void SetOwner(SmartBindableBase owner){
+			_runtimeActive = _active;
+			OnSetOwner(owner);
+		}
+		/// <summary>
+		/// Called when decorator is initially set up by its owner SmartObject.
+		/// <para />Classes derived from SmartDecoratorBase must store the reference manually.
+		/// </summary>
+		protected abstract void OnSetOwner(SmartBindableBase owner);
 	}
 	/// <summary>
 	/// Base class for custom SmartEvent Decorators.
@@ -65,7 +110,7 @@ namespace SmartData.Abstract {
 		public SmartEvent.Data.EventVar owner {get {return _owner;}}
 		IRelayBinding _onDispatchBinding;
 
-		public override void SetOwner(SmartBindableBase owner){
+		protected override void OnSetOwner(SmartBindableBase owner){
 			this._owner = (SmartEvent.Data.EventVar)owner;
 			_onDispatchBinding = this._owner.BindListener(OnDispatched);
 		}
@@ -91,9 +136,8 @@ namespace SmartData.Abstract {
 	public abstract class SmartDataDecoratorBase<TData> : SmartDecoratorBase, ISmartRefOwnerRedirect {
 		SmartVar<TData> _owner;
 		public SmartVar<TData> owner {get {return _owner;}}
-		public virtual TData OnUpdated(TData oldValue, TData newValue, RestoreMode restoreMode){return newValue;}
-		public virtual void OnDispatched(TData value){}
-		public override void SetOwner(SmartBindableBase owner){
+		public virtual TData OnUpdated(TData oldValue, TData newValue, RestoreMode restoreMode, ref BlockFlags block){return newValue;}
+		protected override void OnSetOwner(SmartBindableBase owner){
 			this._owner = (SmartVar<TData>)owner;
 		}
 
@@ -170,7 +214,7 @@ namespace SmartData.Abstract {
 		/// </summary>
 		protected virtual void OnEndClear(){}
 
-		public override void SetOwner(SmartBindableBase owner){
+		protected override void OnSetOwner(SmartBindableBase owner){
 			this._owner = (SmartSet<TData>)owner;
 		}
 	}
