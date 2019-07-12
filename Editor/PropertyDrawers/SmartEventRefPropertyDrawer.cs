@@ -31,7 +31,7 @@ namespace SmartData.Editors {
 			if (useMulti){
 				DrawMultiProperty(fieldPos, property, min, max);
 			} else {
-				DrawSmart(fieldPos, property.FindPropertyRelative("_smartEvent"), min, max, true);
+				DrawSmart(fieldPos, property.FindPropertyRelative("_smartEvent"), property, min, max, true);
 			}
 
 			if (IsForceHideEvent(property, fieldInfo)) return;

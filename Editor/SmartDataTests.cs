@@ -716,6 +716,7 @@ namespace SmartData.Editors.Testing {
 		}
 
 		void SetupFloatRef(object r, SFA.SmartBase smart, SFA.SmartDataRefBase.RefType type, int multiIndex){
+			Debug.Log("BLARGH");
 			var b = BindingFlags.Instance | BindingFlags.NonPublic;
 			r.GetType().GetFieldPrivate(SmartDataRefPropertyDrawer.refPropNames[type], b).SetValue(r, smart);
 			try {

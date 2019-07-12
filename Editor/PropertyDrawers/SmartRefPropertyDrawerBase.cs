@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Reflection;
 using System.Linq;
+using SmartData.Abstract;
 
 namespace SmartData.Editors {
 	public abstract class SmartRefPropertyDrawerBase : PropertyDrawer {
@@ -326,7 +327,10 @@ namespace SmartData.Editors {
 			indexRect.yMin = position.min.y;
 			indexRect.height = position.height;
 			
-			DrawSmart(l, property.FindPropertyRelative("_smartMulti"), min, new Vector2(l.max.x, max.y), true);
+			DrawSmart(
+				l, property.FindPropertyRelative("_smartMulti"), property, min,
+				new Vector2(l.max.x, max.y), true, SmartDataRefBase.RefType.MULTI
+			);
 
 			// Disable index if necessary
 			bool forceNoMultiIndex = false;
@@ -347,9 +351,22 @@ namespace SmartData.Editors {
 			GUI.enabled = true;
 		}
 		
-		public void DrawSmart(Rect position, SerializedProperty property, Vector2 min, Vector2 max, bool showCreateBtn){
+		public void DrawSmart(
+			Rect position, SerializedProperty valProp, SerializedProperty refProp, 
+			Vector2 min, Vector2 max, bool showCreateBtn, SmartDataRefBase.RefType? rt=null
+		){
 			Rect fieldPos = new Rect(position.x, position.y, position.width - (18 + SPACING), position.height);
-			EditorGUI.PropertyField(fieldPos, property, GUIContent.none);
+
+			// In LOCAL mode, trigger dispatch if value changed from editor
+			EditorGUI.BeginChangeCheck();
+			EditorGUI.PropertyField(fieldPos, valProp, GUIContent.none);
+			if (rt.HasValue && rt.Value == SmartDataRefBase.RefType.LOCAL && Application.isPlaying && EditorGUI.EndChangeCheck()){
+				var o = refProp.GetObject();
+				var d = o.GetType().GetMethod("Dispatch", BindingFlags.Instance | BindingFlags.Public);
+				if (d != null){
+					d.Invoke(o, null);
+				}
+			}
 
 			if (showCreateBtn && !Application.isPlaying){
 				Rect createBtnPos = new Rect();
@@ -360,9 +377,9 @@ namespace SmartData.Editors {
 				Color gbc = GUI.backgroundColor;
 				GUI.backgroundColor = Color.green;
 				if (GUI.Button(createBtnPos, _gcCreateBtn, EditorStyles.miniButton)){
-					var s = ScriptableObject.CreateInstance(property.GetFieldType().FullName);
+					var s = ScriptableObject.CreateInstance(valProp.GetFieldType().FullName);
 					s.name = ObjectNames.NicifyVariableName(_baseProperty.name).Replace(" ","");
-					property.objectReferenceValue = s;
+					valProp.objectReferenceValue = s;
 					AssetDatabase.CreateAsset(s, string.Format("{0}/{1}.asset", ProjectPanelPathUtil.GetProjectPath(), s.name));
 					EditorGUIUtility.PingObject(s);
 				}

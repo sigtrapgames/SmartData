@@ -10,9 +10,9 @@ namespace SmartData.Editors {
 	public class SmartDataRefPropertyDrawer : SmartRefPropertyDrawerBase {
 		static readonly System.Type _bt = typeof(SmartDataRefBase);
 		static readonly SmartDataRefBase.RefType[] RTS_EVENTABLE = 
-			(SmartDataRefBase.RefType[])_bt.GetField("TYPES_EVENTABLE", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+			(SmartDataRefBase.RefType[])_bt.GetField("TYPES_WRITABLE", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
 		static readonly string[] RT_NAMES_EVENTABLE = 
-			(string[])_bt.GetField("TYPENAMES_EVENTABLE", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+			(string[])_bt.GetField("TYPENAMES_WRITABLE", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
 
 		/*static readonly GUIContent[] _refTypeLabels = new GUIContent[10];
 		static readonly Dictionary<SmartRefBase.RefType, string> _tooltips = new Dictionary<SmartRefBase.RefType, string>{
@@ -101,7 +101,10 @@ namespace SmartData.Editors {
 			if (rt == SmartDataRefBase.RefType.MULTI){
 				DrawMultiProperty(fieldPos, property, min, max);					
 			} else {
-				DrawSmart(fieldPos, property.FindPropertyRelative(refPropNames[rt]), min, max, rt != SmartDataRefBase.RefType.LOCAL);
+				DrawSmart(
+					fieldPos, property.FindPropertyRelative(refPropNames[rt]), property, 
+					min, max, rt != SmartDataRefBase.RefType.LOCAL, rt
+				);
 			}
 
 			// Draw event if type supports it

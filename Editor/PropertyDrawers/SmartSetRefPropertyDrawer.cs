@@ -72,8 +72,7 @@ namespace SmartData.Editors {
 					lProp.Next(true);
 					EditorGUI.PropertyField(fieldPos, lProp, new GUIContent("Local Set"), true);
 				} else {
-					DrawSmart(fieldPos, property.FindPropertyRelative(SMART_PROP), min, max, true);
-					//EditorGUI.PropertyField(fieldPos, property.FindPropertyRelative(SMART_PROP), GUIContent.none);
+					DrawSmart(fieldPos, property.FindPropertyRelative(SMART_PROP), property, min, max, true);
 				}
 			}
 			GUI.enabled = true;

@@ -39,6 +39,14 @@ namespace SmartData.Abstract {
 		}
 		#endif
 
+		protected void LogError(string format, params object[] args){
+			format = string.Format("{0} on {1}: {2}", GetType().Name, _ownerName, format);
+			if (_owner){
+				Debug.LogErrorFormat(_owner, format, args);
+			} else {
+				Debug.LogErrorFormat(format, args);
+			}
+		}
 		/// <summary>Used in editor for automatic binding/unbinding of UnityEvent</summary>
 		[SerializeField][HideInInspector]
 		Object _owner;
@@ -146,13 +154,10 @@ namespace SmartData.Abstract {
 		).ToArray();
 		protected static readonly RefType[] TYPES_WRITABLE = 
 			TYPES_ALL.Where((r)=>{return r != RefType.CONST;}).ToArray();
-		protected static readonly RefType[] TYPES_EVENTABLE = 
-			TYPES_WRITABLE.Where((r)=>{return r != RefType.LOCAL;}).ToArray();
 
 		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected static readonly string[] TYPENAMES_ALL = GetTypenames(TYPES_ALL);
 		protected static readonly string[] TYPENAMES_WRITABLE = GetTypenames(TYPES_WRITABLE);
-		protected static readonly string[] TYPENAMES_EVENTABLE = GetTypenames(TYPES_EVENTABLE);
 
 		static string[] GetTypenames(RefType[] rts){
 			string[] result = new string[rts.Length];
@@ -168,8 +173,8 @@ namespace SmartData.Abstract {
 
 		protected bool _isEventable {
 			get {
-				for (int i=0; i<TYPES_EVENTABLE.Length; ++i){
-					if (TYPES_EVENTABLE[i] == _refType) return true;
+				for (int i=0; i<TYPES_WRITABLE.Length; ++i){
+					if (TYPES_WRITABLE[i] == _refType) return true;
 				}
 				return false;
 			}
@@ -230,10 +235,18 @@ namespace SmartData.Abstract {
 			get {
 				switch (_refType){
 					case RefType.LOCAL: return _value;
-					case RefType.CONST: return _smartConst.value;
+					case RefType.CONST:
+						if (!_smartConst){
+							LogError("{0} mode requires a SmartObject to read.", _refType);
+						}
+						return _smartConst.value;
 					case RefType.VAR:
 					case RefType.MULTI:
-						return _writeable.value;
+						var w = _writeable;
+						if (!w){
+							LogError("{0} mode requires a SmartObject to read.", _refType);
+						}
+						return w.value;
 				}
 				return default(TData);
 			}
@@ -242,10 +255,18 @@ namespace SmartData.Abstract {
 			get {
 				switch (_refType){
 					case RefType.LOCAL: return _defaultValue;
-					case RefType.CONST: return _smartConst.value;
+					case RefType.CONST:
+						if (!_smartConst){
+							LogError("{0} mode requires a SmartObject to read.", _refType);
+						}
+						return _smartConst.value;
 					case RefType.VAR:
 					case RefType.MULTI:
-						return _writeable.defaultValue;
+						var w = _writeable;
+						if (!w){
+							LogError("{0} mode requires a SmartObject to read.", _refType);
+						}
+						return w.defaultValue;
 				}
 				return default(TData);
 			}
@@ -322,31 +343,42 @@ namespace SmartData.Abstract {
 		public IRelayLink<TData> relay {
 			get {
 				if (!_isEventable) return null;
+				if (_refType == RefType.LOCAL){
+					return _relay.link;
+				}
 				return _writeable.relay;
 			}
 		}
+		protected Relay<TData> _relay = new Relay<TData>();
+
 		/// <summary>
 		/// If underlying object supports events, binds a listener to it which passes current value.
 		/// <param name="callNow">If true, call just this listener with the current value of the SmartData.</param>
 		/// </summary>
 		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
-			if (!_isEventable) return null;
-			return _writeable.BindListener(listener, callNow);
+			if (!_isEventable){
+				LogError("{0} mode does not support binding.", _refType);
+				return null;
+			}
+			var r = relay;
+			if (r == null){
+				LogError("{0} mode requires a SmartObject reference for binding.", _refType);
+				return null;
+			}
+			var b = relay.BindListener(listener);
+			if (callNow){
+				listener(value);
+			}
+			return b;
 		}
 		/// <summary>
 		/// If underlying object supports events, binds a listener to it which passes nothing.
 		/// </summary>
 		public IRelayBinding BindListener(System.Action listener){
-			if (!_isEventable) return null;
-			return _writeable.BindListener(listener);
+			return BindListener((t)=>{listener();});
 		}
 		protected override IRelayBinding BindUnityEvent(){
-			if (!_isEventable) return null;
-			var w = _writeable;
-			if (w != null){
-				return w.BindListener(GetUnityEventInvoke());
-			}
-			return null;
+			return BindListener(GetUnityEventInvoke());
 		}
 		protected abstract System.Action<TData> GetUnityEventInvoke();
 
@@ -406,9 +438,15 @@ namespace SmartData.Abstract {
 				switch (_refType){
 					case RefType.LOCAL:
 						_value = value;
+						DispatchLocal();
 						break;
 					case RefType.VAR:
 					case RefType.MULTI:
+						var w = _writeable;
+						if (!w){
+							LogError("{0} mode requires a SmartObject to be written to.", _refType);
+							return;
+						}
 						_writeable.value = value;
 						if (!unityEventOnReceive){
 							InvokeUnityEvent(value);
@@ -427,9 +465,15 @@ namespace SmartData.Abstract {
 			switch (_refType){
 				case RefType.LOCAL:
 					_value = _defaultValue;
+					DispatchLocal();
 					break;
 				case RefType.VAR:
 				case RefType.MULTI:
+					var w = _writeable;
+					if (!w){
+						LogError("{0} mode requires a SmartObject to be reset to default.", _refType);
+						return;
+					}
 					_writeable.SetToDefault();
 					if (!unityEventOnReceive){
 						InvokeUnityEvent(value);
@@ -445,10 +489,19 @@ namespace SmartData.Abstract {
 		/// Useful when changing contents of underlying reference-type data.
 		/// </summary>
 		public void Dispatch(){
+			if (_refType == RefType.LOCAL){
+				DispatchLocal();
+			}
 			var w = _writeable;
 			if (w != null){
 				w.Dispatch();
 			}
+			if (!unityEventOnReceive){
+				InvokeUnityEvent(value);
+			}
+		}
+		void DispatchLocal(){
+			_relay.Dispatch(_value);
 			if (!unityEventOnReceive){
 				InvokeUnityEvent(value);
 			}
