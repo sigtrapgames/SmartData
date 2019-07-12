@@ -498,15 +498,31 @@ namespace SmartData.Abstract {
 				}
 			}
 		}
+		public int count {
+			get {return _multi == null ? 0 : _multi.count;}
+		}
 
 		protected TMulti _multi {get {return _smartMulti;}}
+
+		/// <summary>
+		/// Raised when a element (SmartObject or local list entry) is added or removed (not currently supported) to/from this MultiRef.
+		/// First int is new count, second is old count. Returns null if no underlying SmartMulti.
+		/// </summary>
+		public IRelayLink<int, int> onElementCountChanged {
+			get {
+				if (_multi){
+					return _multi.onElementCountChanged;
+				}
+				return null;
+			}	
+		}
 	}
 	/// <summary>
 	/// Abstract base for SmartDataMultiRefs. Do not reference. Will not serialize.
 	/// </summary>
 	public abstract class SmartDataMultiRef<TList, TData, TVar> : 
-		SmartMultiRef<TList, TVar>, ISmartDataMultiRefReader<TData, TVar>
-		where TList:SmartMulti<TData, TVar>
+		SmartMultiRef<TList, TVar>, ISmartDataMultiRefReader<TData, TVar>, IEnumerable<TData>
+		where TList:SmartMulti<TData, TVar>, IEnumerable<TData>
 		where TVar:SmartVar<TData>
 	{
 		#if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -522,17 +538,38 @@ namespace SmartData.Abstract {
 		public TData value {
 			get {return _multi[index].value;}
 		}
+		/// <summary>
+		/// Read-only access to the indexed SmartVar's default value.
+		/// </summary>
 		public TData defaultValue {
 			get {return _multi[index].defaultValue;}
 		}
+		/// <summary>
+		/// Read-only access to SmartVar values by index.
+		/// </summary>
+		public TData this[int index]{
+			get {return _multi[index].value;}
+		}
 		public IRelayLink<TData> relay {get {return _multi[index].relay;}}
 
-		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
-			var result = relay.BindListener(listener);
+		public IEnumerator<TData> GetEnumerator(){
+			return _multi.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return ((IEnumerable)_multi).GetEnumerator();
+		}
+
+		/// <summary>Bind a listener to a specific SmartObject element within the referenced Multi.</summary>
+		public IRelayBinding BindListener(System.Action<TData> listener, int multiIndex, bool callNow=false){
+			var result = _multi[multiIndex].BindListener(listener);
 			if (callNow){
-				_multi[index].Dispatch();
+				_multi[multiIndex].Dispatch();
 			}
 			return result;
+		}
+		/// <summary>Bind a listener to the element specified by this instance's current index field.</summary>
+		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
+			return BindListener(listener, index, callNow);
 		}
 		public IRelayBinding BindListener(System.Action listener){
 			return relay.BindListener((x)=>{listener();});
@@ -555,11 +592,17 @@ namespace SmartData.Abstract {
 		protected sealed override bool _EDITOR_GetIsWritable(){return true;}
 		#endif
 
+		/// <summary>
+		/// The indexed SmartVar value.
+		/// </summary>
 		new public TData value {
 			get {return base.value;}
 			set {this[index] = value;}
 		}
-		public TData this[int index]{
+		/// <summary>
+		/// Underlying SmartVar values by index.
+		/// </summary>
+		new public TData this[int index]{
 			get {return _multi[index].value;}
 			set {
 				_multi[index].value = value;
@@ -604,7 +647,7 @@ namespace SmartData.Abstract {
 	/// <summary>
 	/// Abstract base for SmartSetRefs. Do not reference.
 	/// </summary>
-	public abstract class SmartSetRefBase<TData, TWrite> : SmartSetRefBase, ISerializationCallbackReceiver
+	public abstract class SmartSetRefBase<TData, TWrite> : SmartSetRefBase, ISerializationCallbackReceiver, IEnumerable<TData>
 		where TWrite : SmartSet<TData>, ISmartSet<TData>
 	{
 		#if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -664,6 +707,13 @@ namespace SmartData.Abstract {
 			}
 		}
 
+		IEnumerator<TData> IEnumerable<TData>.GetEnumerator(){
+			return _useList ? _runtimeList.GetEnumerator() : _smartSet.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return _useList ? _runtimeList.GetEnumerator() : _smartSet.GetEnumerator();
+		}
+
 		public IRelayBinding BindListener(System.Action<SetEventData<TData>> listener){
 			if (!_isEventable) return null;
 			return _smartSet.BindListener(listener);
@@ -707,7 +757,7 @@ namespace SmartData.Abstract {
 				bool result = _smartSet.Add(element, allowDuplicates);
 				if (!unityEventOnReceive){
 					int index = _smartSet.count-1;
-					InvokeUnityEvent(new SetEventData<TData>(_smartSet[index], SetOperation.ADDED, index));
+					InvokeUnityEvent(new SetEventData<TData>(_smartSet[index], default(TData), SetOperation.ADDED, index));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
@@ -724,7 +774,7 @@ namespace SmartData.Abstract {
 			} else {
 				int result = _smartSet.Remove(element);
 				if (result >= 0 && !unityEventOnReceive){
-					InvokeUnityEvent(new SetEventData<TData>(element, SetOperation.REMOVED, result));
+					InvokeUnityEvent(new SetEventData<TData>(element, element, SetOperation.REMOVED, result));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
@@ -739,7 +789,7 @@ namespace SmartData.Abstract {
 				TData element = _runtimeList[index];
 				_runtimeList.RemoveAt(index);
 				if (!unityEventOnReceive){
-					InvokeUnityEvent(new SetEventData<TData>(element, SetOperation.REMOVED, index));
+					InvokeUnityEvent(new SetEventData<TData>(element, element, SetOperation.REMOVED, index));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);

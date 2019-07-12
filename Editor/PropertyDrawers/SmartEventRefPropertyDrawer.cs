@@ -9,6 +9,7 @@ namespace SmartData.Editors {
 	public class SmartEventRefPropertyDrawer : SmartRefPropertyDrawerBase {
 		GUIContent _multiBtn = new GUIContent("M", "Using SmartEventMulti");
 		GUIContent _eventBtn = new GUIContent("E", "Using SmartEvent");
+		protected override bool _isEventable {get {return true;}}
 		protected override void DrawGUI(Rect position, SerializedProperty property, GUIContent label, Vector2 min, Vector2 max){
 			Rect fieldPos = DrawLabel(position, property, label);
 
@@ -30,7 +31,7 @@ namespace SmartData.Editors {
 			if (useMulti){
 				DrawMultiProperty(fieldPos, property, min, max);
 			} else {
-				DrawSmart(fieldPos, property.FindPropertyRelative("_smartEvent"), min, max);
+				DrawSmart(fieldPos, property.FindPropertyRelative("_smartEvent"), min, max, true);
 			}
 
 			if (IsForceHideEvent(property, fieldInfo)) return;

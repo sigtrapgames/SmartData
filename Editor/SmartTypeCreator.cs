@@ -284,226 +284,225 @@ Uses a simple string.Contains() match. Case-sensitive.
 				_t.Add("");
 			}
 
-			_scroll = EditorGUILayout.BeginScrollView(_scroll);{
+			Color gbc = GUI.backgroundColor;
+			EditorGUILayout.BeginVertical();{	// Used to GetLastRect to control total height of window
+				EditorGUILayout.Space();
 
-				Color gbc = GUI.backgroundColor;
-				EditorGUILayout.BeginVertical();{	// Used to GetLastRect to control total height of window
-					EditorGUILayout.Space();
+				if (!_isRegenerating){
+					EditorGUILayout.LabelField("Data Types", GUILayout.MaxWidth(70));
+					if (InlineHelpButton()){
+						_showTypeTooltip = !_showTypeTooltip;
+					}
 
-					if (!_isRegenerating){
-						EditorGUILayout.LabelField("Data Types", GUILayout.MaxWidth(70));
-						if (InlineHelpButton()){
-							_showTypeTooltip = !_showTypeTooltip;
-						}
+					if (_isParsingAssemblies){
+						EditorGUI.ProgressBar(GUILayoutUtility.GetLastRect(), _parseProgress, "Parsing Types");
+					}
 
-						if (_isParsingAssemblies){
-							EditorGUI.ProgressBar(GUILayoutUtility.GetLastRect(), _parseProgress, "Parsing Types");
-						}
+					++EditorGUI.indentLevel;
+					if (_showTypeTooltip){
+						EditorGUILayout.HelpBox("Case-sensitive. Include any namespaces/nesting.\nBasic types (e.g. int, float) and Unity types (e.g. Vector3) don't need namespaces.", MessageType.Info);
+					}
+					_toRemove.Clear();
 
-						++EditorGUI.indentLevel;
-						if (_showTypeTooltip){
-							EditorGUILayout.HelpBox("Case-sensitive. Include any namespaces/nesting.\nBasic types (e.g. int, float) and Unity types (e.g. Vector3) don't need namespaces.", MessageType.Info);
-						}
-						_toRemove.Clear();
-
-						int focusedField = -1;
-						var btnOptions = new GUILayoutOption[]{GUILayout.Width(20), GUILayout.Height(13)};
-						bool missingGenericArgs = false;
-						for (int i=0; i<_t.Count; ++i){
-							bool typeIsOpenGeneric = false;
-							string focusName = string.Format(TYPE_FIELD_NAME, i);
-							EditorGUILayout.BeginHorizontal();{
-								GUI.SetNextControlName(focusName);
-								if (_t[i].Contains("#") || _t[i].Contains("<,") || _t[i].Contains(",,") || _t[i].Contains("<>") || _t[i].Contains(",>")){
-									GUI.backgroundColor = Color.red;
-									missingGenericArgs = true;
-									typeIsOpenGeneric = true;
-								}
-								_t[i] = WithoutSelectAll(()=>EditorGUILayout.TextField(_t[i]));
-								GUI.backgroundColor = gbc;
-
+					int focusedField = -1;
+					var btnOptions = new GUILayoutOption[]{GUILayout.Width(20), GUILayout.Height(13)};
+					bool missingGenericArgs = false;
+					for (int i=0; i<_t.Count; ++i){
+						bool typeIsOpenGeneric = false;
+						string focusName = string.Format(TYPE_FIELD_NAME, i);
+						EditorGUILayout.BeginHorizontal();{
+							GUI.SetNextControlName(focusName);
+							if (_t[i].Contains("#") || _t[i].Contains("<,") || _t[i].Contains(",,") || _t[i].Contains("<>") || _t[i].Contains(",>")){
 								GUI.backgroundColor = Color.red;
-								GUI.enabled = _t.Count > 1;
-								if (GUILayout.Button("-", btnOptions)){
-									_toRemove.Add(_t[i]);
-								}
-								GUI.enabled = true;
-								GUI.backgroundColor = gbc;
-							} EditorGUILayout.EndHorizontal();
-							
-							if (typeIsOpenGeneric){
-								EditorGUILayout.HelpBox("Replace all # with type arguments", MessageType.Error);
+								missingGenericArgs = true;
+								typeIsOpenGeneric = true;
 							}
+							_t[i] = WithoutSelectAll(()=>EditorGUILayout.TextField(_t[i]));
+							GUI.backgroundColor = gbc;
 
-							// Get focused field for autocomplete
-							string focus = GUI.GetNameOfFocusedControl();
-							if (focus == focusName){
-								if (settingsDirty){
-									OnFocus();
-								}
-								if (!string.IsNullOrEmpty(_t[i])){
-									focusedField = i;
-								} else {
-									_lastTypeName = null;
-								}
+							GUI.backgroundColor = Color.red;
+							GUI.enabled = _t.Count > 1;
+							if (GUILayout.Button("-", btnOptions)){
+								_toRemove.Add(_t[i]);
 							}
-						}
-
-						// Autocomplete
-						if (!_isParsingAssemblies && focusedField >= 0){
-							// Check if changed
-							string t = _t[focusedField];
-							if (t != _lastTypeName){
-								_typeAutocompleteScroll = Vector2.zero;
-								_lastTypeName = t;
-								// Start match
-								_typeMatchIndex = 0;
-								_typesAutocompleted.Clear();
-								_matching = true;
-							}
-							
-							// Match
-							if (_matching){
-								_acSw.Start();
-								bool skip = false;
-								while (_typeMatchIndex<_typeNames.Count){							
-									if (_typeNames[_typeMatchIndex].Contains(t)){
-										_typesAutocompleted.Add(_typeNames[_typeMatchIndex]);
-									}
-									++_typeMatchIndex;
-									if (_acSw.Elapsed.TotalSeconds > SmartTypeCreatorSettings.DEFAULT.asyncTypeLoadFrameTime){
-										skip = true;
-										repaint = true;
-										break;
-									}
-								}
-								if (!skip){
-									// Finished
-									_matching = false;
-								}
-								_acSw.Stop();
-								_acSw.Reset();
-							}
-
-							// Autocomplete box
-							if (_typesAutocompleted.Count > 0){
-								_typeAutocompleteScroll = EditorGUILayout.BeginScrollView(
-									_typeAutocompleteScroll,
-									GUILayout.Height(GetTypeAutocompleteHeight()),
-									GUILayout.ExpandWidth(true)
-								);{
-									EditorGUILayout.BeginHorizontal(); {
-										GUILayout.Space(30);
-										GUI.backgroundColor = _matching ? Color.yellow : Color.green;
-										EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Height(_typesAutocompleted.Count*20)); {
-											// Fake header space
-											// Don't render occluded elements, according to scroll
-											int offset = Mathf.Max(0, Mathf.FloorToInt(_typeAutocompleteScroll.y / 20)-1);
-											GUILayout.Space(offset * 20);
-											GUI.backgroundColor = gbc;
-											for (int i=offset; i<_typesAutocompleted.Count; ++i){
-												EditorGUILayout.BeginHorizontal();{
-													if (GUILayout.Button("Select", GUILayout.MaxWidth(75))){
-														_t[focusedField] = _typesAutocompleted[i];
-														GUI.FocusControl(null);
-														repaint = true;
-													}
-													EditorGUILayout.LabelField(_typesAutocompleted[i]);
-												} EditorGUILayout.EndHorizontal();
-												if (i > offset+MAX_AUTOCOMPLETE_LINES+1) break;
-											}
-										} EditorGUILayout.EndVertical();
-									} EditorGUILayout.EndHorizontal();
-								} EditorGUILayout.EndScrollView();
-							}
-						} else {
-							_matching = false;
-							_lastTypeName = null;
-							_typesAutocompleted.Clear();
-						}
-
-						if (_toRemove.Count > 0){
-							foreach (string s in _toRemove){
-								_t.Remove(s);
-							}
-							_toRemove.Clear();
-						}
-
-						EditorGUILayout.BeginHorizontal(); {
-							GUI.enabled = false;
-							EditorGUILayout.TextField("");
 							GUI.enabled = true;
-							GUI.backgroundColor = Color.green;
-							if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(14))){
-								_t.Add("");
-							}
 							GUI.backgroundColor = gbc;
 						} EditorGUILayout.EndHorizontal();
-						--EditorGUI.indentLevel;
+						
+						if (typeIsOpenGeneric){
+							EditorGUILayout.HelpBox("Replace all # with type arguments", MessageType.Error);
+						}
 
-						EditorGUILayout.BeginHorizontal(); {
-							_path = EditorGUILayout.TextField(
-								new GUIContent("Path", "Folder for generated scripts. If Individual Subfolders ticked, subfolders will be created here."),
-								_path
-							);
-							if (GUILayout.Button("Select...", GUILayout.Width(75))){
-								string p = EditorUtility.OpenFolderPanel("Select folder for generated Smart Types", _path, "");
-								if (!string.IsNullOrEmpty(p)){
-									_path = SmartEditorUtils.ToRelativePath(p);
+						// Get focused field for autocomplete
+						string focus = GUI.GetNameOfFocusedControl();
+						if (focus == focusName){
+							if (settingsDirty){
+								OnFocus();
+							}
+							if (!string.IsNullOrEmpty(_t[i])){
+								focusedField = i;
+							} else {
+								_lastTypeName = null;
+							}
+						}
+					}
+
+					// Autocomplete
+					if (!_isParsingAssemblies && focusedField >= 0){
+						// Check if changed
+						string t = _t[focusedField];
+						if (t != _lastTypeName){
+							_typeAutocompleteScroll = Vector2.zero;
+							_lastTypeName = t;
+							// Start match
+							_typeMatchIndex = 0;
+							_typesAutocompleted.Clear();
+							_matching = true;
+						}
+						
+						// Match
+						if (_matching){
+							_acSw.Start();
+							bool skip = false;
+							while (_typeMatchIndex<_typeNames.Count){							
+								if (_typeNames[_typeMatchIndex].Contains(t)){
+									_typesAutocompleted.Add(_typeNames[_typeMatchIndex]);
+								}
+								++_typeMatchIndex;
+								if (_acSw.Elapsed.TotalSeconds > SmartTypeCreatorSettings.DEFAULT.asyncTypeLoadFrameTime){
+									skip = true;
+									repaint = true;
+									break;
 								}
 							}
-						} EditorGUILayout.EndHorizontal();
+							if (!skip){
+								// Finished
+								_matching = false;
+							}
+							_acSw.Stop();
+							_acSw.Reset();
+						}
 
-						_overwrite = EditorGUILayout.Toggle(new GUIContent("Overwrite", "If false, will ignore types that already exist in the target path."), _overwrite);
-						_subfolders = EditorGUILayout.Toggle(new GUIContent("Individual Subfolders", "Create subfolders for each type within the target path."), _subfolders);
-
-						EditorGUILayout.Space();
-						EditorGUILayout.BeginHorizontal(EditorStyles.helpBox); {
-							EditorGUILayout.BeginVertical(GUILayout.Width(150)); {
-								GUI.backgroundColor = Color.green;
-								GUI.enabled = !missingGenericArgs && _settingsValid;
-								if (GUILayout.Button("Create")){
-									PopulateTemplates();
-									int successes = 0;
-									scriptAbsPathToGuid.Clear();
-									for (int i=0; i<_t.Count; ++i){
-										if (CreateType(_t[i], _overwrite)){
-											++successes;
-											_toRemove.Add(_t[i]);
+						// Autocomplete box
+						if (_typesAutocompleted.Count > 0){
+							_typeAutocompleteScroll = EditorGUILayout.BeginScrollView(
+								_typeAutocompleteScroll,
+								GUILayout.Height(GetTypeAutocompleteHeight()),
+								GUILayout.ExpandWidth(true)
+							);{
+								EditorGUILayout.BeginHorizontal(); {
+									GUILayout.Space(30);
+									GUI.backgroundColor = _matching ? Color.yellow : Color.green;
+									EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Height(_typesAutocompleted.Count*20)); {
+										// Fake header space
+										// Don't render occluded elements, according to scroll
+										int offset = Mathf.Max(0, Mathf.FloorToInt(_typeAutocompleteScroll.y / 20)-1);
+										GUILayout.Space(offset * 20);
+										GUI.backgroundColor = gbc;
+										for (int i=offset; i<_typesAutocompleted.Count; ++i){
+											EditorGUILayout.BeginHorizontal();{
+												if (GUILayout.Button("Select", GUILayout.MaxWidth(75))){
+													_t[focusedField] = _typesAutocompleted[i];
+													GUI.FocusControl(null);
+													repaint = true;
+												}
+												EditorGUILayout.LabelField(_typesAutocompleted[i]);
+											} EditorGUILayout.EndHorizontal();
+											if (i > offset+MAX_AUTOCOMPLETE_LINES+1) break;
 										}
-									}
-									if (successes > 0){
-										if (successes == _t.Count){
-											ClosePopup();
-										} else {
-											// Remove successful types
-											foreach (string s in _toRemove){
-												_t.Remove(s);
-											}
-										}
-										AssetDatabase.Refresh();
-										PostProcessMeta();
-									}
-								}
-								
-								GUI.enabled = _settingsValid;
-								GUI.backgroundColor = Color.cyan;
-								if (GUILayout.Button("Regenerate...")){
-									PopulateRegen();
-								}
-								GUI.backgroundColor = Color.magenta;
-								if (GUILayout.Button("Regenerate All")){
-									PopulateRegen();
-									RegenNow();
-								}
-								GUI.backgroundColor = gbc;
-								GUI.enabled = true;
-							} EditorGUILayout.EndVertical();
-
-							DrawSettings();
-						} EditorGUILayout.EndHorizontal();
+									} EditorGUILayout.EndVertical();
+								} EditorGUILayout.EndHorizontal();
+							} EditorGUILayout.EndScrollView();
+						}
 					} else {
-						// Regen mode
+						_matching = false;
+						_lastTypeName = null;
+						_typesAutocompleted.Clear();
+					}
+
+					if (_toRemove.Count > 0){
+						foreach (string s in _toRemove){
+							_t.Remove(s);
+						}
+						_toRemove.Clear();
+					}
+
+					EditorGUILayout.BeginHorizontal(); {
+						GUI.enabled = false;
+						EditorGUILayout.TextField("");
+						GUI.enabled = true;
+						GUI.backgroundColor = Color.green;
+						if (GUILayout.Button("+", GUILayout.Width(20), GUILayout.Height(14))){
+							_t.Add("");
+						}
+						GUI.backgroundColor = gbc;
+					} EditorGUILayout.EndHorizontal();
+					--EditorGUI.indentLevel;
+
+					EditorGUILayout.BeginHorizontal(); {
+						_path = EditorGUILayout.TextField(
+							new GUIContent("Path", "Folder for generated scripts. If Individual Subfolders ticked, subfolders will be created here."),
+							_path
+						);
+						if (GUILayout.Button("Select...", GUILayout.Width(75))){
+							string p = EditorUtility.OpenFolderPanel("Select folder for generated Smart Types", _path, "");
+							if (!string.IsNullOrEmpty(p)){
+								_path = SmartEditorUtils.ToRelativePath(p);
+							}
+						}
+					} EditorGUILayout.EndHorizontal();
+
+					_overwrite = EditorGUILayout.Toggle(new GUIContent("Overwrite", "If false, will ignore types that already exist in the target path."), _overwrite);
+					_subfolders = EditorGUILayout.Toggle(new GUIContent("Individual Subfolders", "Create subfolders for each type within the target path."), _subfolders);
+
+					EditorGUILayout.Space();
+					EditorGUILayout.BeginHorizontal(EditorStyles.helpBox); {
+						EditorGUILayout.BeginVertical(GUILayout.Width(150)); {
+							GUI.backgroundColor = Color.green;
+							GUI.enabled = !missingGenericArgs && _settingsValid;
+							if (GUILayout.Button("Create")){
+								PopulateTemplates();
+								int successes = 0;
+								scriptAbsPathToGuid.Clear();
+								for (int i=0; i<_t.Count; ++i){
+									if (CreateType(_t[i], _overwrite)){
+										++successes;
+										_toRemove.Add(_t[i]);
+									}
+								}
+								if (successes > 0){
+									if (successes == _t.Count){
+										ClosePopup();
+									} else {
+										// Remove successful types
+										foreach (string s in _toRemove){
+											_t.Remove(s);
+										}
+									}
+									AssetDatabase.Refresh();
+									PostProcessMeta();
+								}
+							}
+							
+							GUI.enabled = _settingsValid;
+							GUI.backgroundColor = Color.cyan;
+							if (GUILayout.Button("Regenerate...")){
+								PopulateRegen();
+							}
+							GUI.backgroundColor = Color.magenta;
+							if (GUILayout.Button("Regenerate All")){
+								PopulateRegen();
+								RegenNow();
+							}
+							GUI.backgroundColor = gbc;
+							GUI.enabled = true;
+						} EditorGUILayout.EndVertical();
+
+						DrawSettings();
+					} EditorGUILayout.EndHorizontal();
+				} else {
+					// Regen mode
+					_scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.MinHeight(300));{
 						EditorGUILayout.LabelField("Regenerate types:");
 						EditorGUILayout.Space();
 						++EditorGUI.indentLevel;
@@ -586,29 +585,29 @@ Uses a simple string.Contains() match. Case-sensitive.
 							}
 						}
 						--EditorGUI.indentLevel;
+					} EditorGUILayout.EndScrollView();
 
-						EditorGUILayout.Space();
-						EditorGUILayout.Space();
+					EditorGUILayout.Space();
+					EditorGUILayout.Space();
 
-						EditorGUILayout.BeginHorizontal(EditorStyles.helpBox); {
-							EditorGUILayout.BeginVertical(GUILayout.Width(150)); {
-								GUI.backgroundColor = Color.green;
-								if (GUILayout.Button("Regenerate!")){
-									RegenNow();
-								}
+					EditorGUILayout.BeginHorizontal(EditorStyles.helpBox); {
+						EditorGUILayout.BeginVertical(GUILayout.Width(150)); {
+							GUI.backgroundColor = Color.green;
+							if (GUILayout.Button("Regenerate!")){
+								RegenNow();
+							}
 
-								GUI.backgroundColor = Color.red;
-								if (GUILayout.Button("Cancel")){
-									_regenTypesByPath.Clear();
-								}
-								GUI.backgroundColor = gbc;
-							} EditorGUILayout.EndVertical();
+							GUI.backgroundColor = Color.red;
+							if (GUILayout.Button("Cancel")){
+								_regenTypesByPath.Clear();
+							}
+							GUI.backgroundColor = gbc;
+						} EditorGUILayout.EndVertical();
 
-							DrawSettings();
-						} EditorGUILayout.EndHorizontal();
-					}
-				} EditorGUILayout.EndVertical();
-			} EditorGUILayout.EndScrollView();
+						DrawSettings();
+					} EditorGUILayout.EndHorizontal();
+				}
+			} EditorGUILayout.EndVertical();
 
 			// GetLastRect for entire vertical group to control total height of window
 			SetHeight(GUILayoutUtility.GetLastRect().height);			

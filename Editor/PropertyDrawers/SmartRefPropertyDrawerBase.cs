@@ -8,8 +8,10 @@ using System.Linq;
 namespace SmartData.Editors {
 	public abstract class SmartRefPropertyDrawerBase : PropertyDrawer {
 		protected const int SPACING = 2;
-		bool _showEvent;
+		static readonly GUIContent _gcCreateBtn = new GUIContent("+", "Create a new SmartObject asset for this field.");
 		bool _forceExpand;
+		protected virtual bool _isEventable {get; set;}
+		float _lastHeight;
 
 		protected SerializedProperty _baseProperty {get; private set;}
 		public sealed override void OnGUI(Rect position, SerializedProperty property, GUIContent label){
@@ -83,15 +85,27 @@ namespace SmartData.Editors {
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label){
 			float bph = BasePropertyHeight(property, label);
-			SerializedProperty e0, e1;
-			GetEvents(property, out e0, out e1);
-			if (e0 != null){
-				if (_forceExpand || _showEvent){
-					return GetEventHeight(e0) + GetEventHeight(e1) + bph + SPACING + 5;
+			float result = -1;
+			if (_isEventable){
+				SerializedProperty e0, e1;
+				GetEvents(property, out e0, out e1);
+				if (e0 != null){
+					if (_forceExpand || e0.isExpanded){
+						result = GetEventHeight(e0) + GetEventHeight(e1) + bph + SPACING + 5;
+					} else {
+						result = 2*bph;
+					}
 				}
-				return 2*bph;
+			} else {
+				result = bph;
 			}
-			return bph;
+			if (result != _lastHeight){
+				// Force repaint
+				property.serializedObject.Update();
+				EditorApplication.update();
+			}
+			_lastHeight = result;
+			return result;
 		}
 		protected float BasePropertyHeight(SerializedProperty property, GUIContent label){
 			return base.GetPropertyHeight(property, label);
@@ -123,23 +137,24 @@ namespace SmartData.Editors {
 				evtPos.xMax = max.x;
 				evtPos.height = position.height;
 				_forceExpand = forceExpand;
+				bool wasExpanded = e0.isExpanded;
 				if (!_forceExpand){
 					Rect togglePos = new Rect();
 					togglePos.xMin = min.x + 15;
-					togglePos.width = (_showEvent ? 20 : 60) - SPACING;
+					togglePos.width = (e0.isExpanded ? 20 : 60) - SPACING;
 					togglePos.yMin = position.max.y+SPACING;
 					togglePos.height = position.height;
 
 					evtPos.xMin = togglePos.max.x + SPACING + SmartEditorUtils.indent;
 					evtPos.yMin = togglePos.yMin;
 
-					_showEvent = EditorGUI.Foldout(togglePos, _showEvent, (_showEvent ? "": "Event"));
+					e0.isExpanded = EditorGUI.Foldout(togglePos, e0.isExpanded, (e0.isExpanded ? "": "Event"));
 				} else {
-					_showEvent = true;
+					e0.isExpanded = true;
 					evtPos.xMin = min.x;
 					evtPos.yMin = position.max.y+SPACING;
 				}
-				if (_showEvent){
+				if (e0.isExpanded){
 					evtPos.height = GetEventHeight(e0);
 					EditorGUI.PropertyField(evtPos, e0);
 					if (e1 != null){
@@ -197,6 +212,9 @@ namespace SmartData.Editors {
 						}
 						GUI.enabled = true;
 					}
+				}
+				if (e0.isExpanded != wasExpanded){
+					property.serializedObject.ApplyModifiedPropertiesWithoutUndo();
 				}
 			}
 		}
@@ -300,8 +318,15 @@ namespace SmartData.Editors {
 			l.min = position.min;
 			l.height = position.height;
 			l.width = position.width - (25 + SPACING);
+
+			// Index rect
+			Rect indexRect = new Rect();
+			indexRect.xMin = l.max.x + SPACING - SmartEditorUtils.indent;
+			indexRect.xMax = max.x;
+			indexRect.yMin = position.min.y;
+			indexRect.height = position.height;
 			
-			DrawSmart(l, property.FindPropertyRelative("_smartMulti"), min, max);
+			DrawSmart(l, property.FindPropertyRelative("_smartMulti"), min, new Vector2(l.max.x, max.y), true);
 
 			// Disable index if necessary
 			bool forceNoMultiIndex = false;
@@ -315,38 +340,34 @@ namespace SmartData.Editors {
 				GUI.enabled = false;
 			}
 
-			// Index rect
-			Rect r = new Rect();
-			r.xMin = l.max.x + SPACING - SmartEditorUtils.indent;
-			r.xMax = max.x;
-			r.yMin = position.min.y;
-			r.height = position.height;
-
-			EditorGUI.PropertyField(r, property.FindPropertyRelative("_multiIndex"), GUIContent.none);
+			EditorGUI.PropertyField(indexRect, property.FindPropertyRelative("_multiIndex"), GUIContent.none);
 			if (forceNoMultiIndex){
-				GUI.Label(r, new GUIContent("",  "Disabled in code"));
+				GUI.Label(indexRect, new GUIContent("",  "Disabled in code"));
 			}
 			GUI.enabled = true;
 		}
-		public void DrawSmart(Rect position, SerializedProperty property, Vector2 min, Vector2 max){
+		
+		public void DrawSmart(Rect position, SerializedProperty property, Vector2 min, Vector2 max, bool showCreateBtn){
 			Rect fieldPos = new Rect(position.x, position.y, position.width - (18 + SPACING), position.height);
 			EditorGUI.PropertyField(fieldPos, property, GUIContent.none);
 
-			Rect createBtnPos = new Rect();
-			createBtnPos.xMin = fieldPos.max.x + SPACING - SmartEditorUtils.indent;
-			createBtnPos.xMax = max.x;
-			createBtnPos.yMin = fieldPos.yMin;
-			createBtnPos.height = fieldPos.height;
-			Color gbc = GUI.backgroundColor;
-			GUI.backgroundColor = Color.green;
-			if (GUI.Button(createBtnPos, "+", EditorStyles.miniButton)){
-				var s = ScriptableObject.CreateInstance(property.GetFieldType().FullName);
-				s.name = ObjectNames.NicifyVariableName(_baseProperty.name).Replace(" ","");
-				property.objectReferenceValue = s;
-				AssetDatabase.CreateAsset(s, string.Format("{0}/{1}.asset", ProjectPanelPathUtil.GetProjectPath(), s.name));
-				EditorGUIUtility.PingObject(s);
+			if (showCreateBtn && !Application.isPlaying){
+				Rect createBtnPos = new Rect();
+				createBtnPos.xMin = fieldPos.max.x + SPACING;// - SmartEditorUtils.indent;
+				createBtnPos.xMax = max.x;
+				createBtnPos.yMin = fieldPos.yMin;
+				createBtnPos.height = fieldPos.height;
+				Color gbc = GUI.backgroundColor;
+				GUI.backgroundColor = Color.green;
+				if (GUI.Button(createBtnPos, _gcCreateBtn, EditorStyles.miniButton)){
+					var s = ScriptableObject.CreateInstance(property.GetFieldType().FullName);
+					s.name = ObjectNames.NicifyVariableName(_baseProperty.name).Replace(" ","");
+					property.objectReferenceValue = s;
+					AssetDatabase.CreateAsset(s, string.Format("{0}/{1}.asset", ProjectPanelPathUtil.GetProjectPath(), s.name));
+					EditorGUIUtility.PingObject(s);
+				}
+				GUI.backgroundColor = gbc;
 			}
-			GUI.backgroundColor = gbc;
 		}
 
 		protected bool IsEventEnabled(SerializedProperty prop, FieldInfo fieldInfo){
