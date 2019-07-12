@@ -28,7 +28,7 @@ namespace SmartData.SmartFloat.Decorators {
 		public IRelayLink<SmartFloatRangeDecorator, float, float> onRangeClamped {get {return _onRangeClamped;}}
 		Relay<SmartFloatRangeDecorator, float, float> _onRangeClamped = new Relay<SmartFloatRangeDecorator, float, float>();
 
-		public override float OnUpdated(float oldValue, float newValue, RestoreMode restoreMode){
+		public override float OnUpdated(float oldValue, float newValue, RestoreMode restoreMode, ref BlockFlags block){
 			float result = Mathf.Clamp(newValue, _min, _max);
 			if (result != newValue){
 				_onRangeClamped.Dispatch(this, result, newValue);

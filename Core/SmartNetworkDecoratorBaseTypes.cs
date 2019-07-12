@@ -9,18 +9,30 @@ namespace SmartData.Abstract {
 	/// <para />Implement other behaviour to call Receive when data is replicated.
 	/// </summary>
 	public abstract class SmartNetworkDataDecoratorBase<TData> : SmartDataDecoratorBase<TData> {
-		public override TData OnUpdated(TData oldValue, TData newValue, RestoreMode restoreMode){
+		[SerializeField, Tooltip("Only dispatch event across network, not locally.")]
+		bool _networkOnlyDispatch;
+		[SerializeField, Tooltip("Only update value across network, not locally.")]
+		bool _networkOnlyValue;
+		public override TData OnUpdated(TData oldValue, TData newValue, RestoreMode restoreMode, ref BlockFlags block){
 			Send(newValue);
+			// Stop event from being dispatched locally
+			if (_networkOnlyDispatch){
+				Debug.LogFormat("Decorator {0} on {1}: Block DISPATCH", GetType().Name, owner.name);
+				block |= BlockFlags.DISPATCH;
+			}
+			// Stop data from being updated locally
+			if (_networkOnlyValue){
+				Debug.LogFormat("Decorator {0} on {1}: Block DATA", GetType().Name, owner.name);
+				block |= BlockFlags.DATA;
+			}
 			return newValue;
-		}
-		public override void OnDispatched(TData value){
-			Send(value);
 		}
 		protected abstract void Send(TData value);
 		/// <summary>
 		/// Call to receive an update from the network.
 		/// </summary>
 		public void Receive(TData value){
+			Debug.LogFormat("Decorator {0} on {1}: RECEIVE", GetType().Name, owner.name);
 			// Take self out of OnSetValue callbacks to avoid loop
 			this.active = false;
 			// Set value

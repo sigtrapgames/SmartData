@@ -67,7 +67,12 @@ namespace SmartData.SmartEvent {
 
 		public override bool isValid {get {return _event != null;}}
 		public override string name {get {return _useMulti ? _smartMulti.name : _smartEvent.name;}}
-		public IRelayLink relay {get {return _event.relay;}}
+		public virtual IRelayLink relay {
+			get {
+				if (isValid) return _event.relay;
+				throw new System.Exception("SmartEvent object must be present in EventListener (but not EventDispatcher!) to subscribe to events.");
+			}
+		}
 		protected EventVar _event {
 			get {return _useMulti ? _smartMulti[_multiIndex] : _smartEvent;}
 		}
@@ -108,10 +113,23 @@ namespace SmartData.SmartEvent {
 		#if UNITY_EDITOR
 		protected sealed override bool _EDITOR_GetIsWritable(){return true;}
 		#endif
+
+		Relay _localEvent = new Relay();
+		public override IRelayLink relay {
+			get {
+				if (isValid) return base.relay;
+				return _localEvent.link;
+			}
+		}
 		
 		public void Dispatch(){
-			_event.Dispatch();
-			if (!unityEventOnReceive){
+			if (_event){
+				_event.Dispatch();
+				if (!unityEventOnReceive){
+					InvokeUnityEvent();
+				}
+			} else {
+				_localEvent.Dispatch();
 				InvokeUnityEvent();
 			}
 			#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS

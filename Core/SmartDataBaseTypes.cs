@@ -381,15 +381,16 @@ namespace SmartData.Abstract {
 		public static DataType GetDataType(System.Type tData){
 			if (tData.IsValueType || tData == typeof(string) || tData.IsSubclassOf(typeof(string))){
 				return DataType.STRUCT;
+			} else if (tData.IsSubclassOf(typeof(UnityEngine.Object))){
+				return DataType.CLASS;
 			} else if (tData.IsArray){
 				return DataType.ARRAY;
 			} else if (typeof(IDictionary).IsAssignableFrom(tData)){
 				return DataType.DICTIONARY;
 			} else if (typeof(IEnumerable).IsAssignableFrom(tData)){
 				return DataType.COLLECTION;
-			} else {
-				return DataType.CLASS;
 			}
+			return DataType.CLASS;
 		}
 	}
 
@@ -433,29 +434,39 @@ namespace SmartData.Abstract {
 				_binder.AutoBind();
 			}
 			
+			BlockFlags block = BlockFlags.NONE;
 			if (_hasDecorators){
 				TData temp = v;
-				temp = ExecuteDecoratorsOnUpdate(_decorators, _runtimeValue, temp, restore);
-				if (_multiDecorators.Count > 0){
+				temp = ExecuteDecoratorsOnUpdate(_decorators, _runtimeValue, temp, restore, ref block);
+				// If decorators blocked, do not continue to other decorators
+				if (!block.Contains(BlockFlags.DECORATORS) && _multiDecorators.Count > 0){
 					foreach (var a in _multiDecorators){
-						temp = ExecuteDecoratorsOnUpdate(a.Value, _runtimeValue, temp, restore);
+						temp = ExecuteDecoratorsOnUpdate(a.Value, _runtimeValue, temp, restore, ref block);
 					}
 				}
 
-				_runtimeValue = temp;
+				// If data blocked, do not update runtime value
+				if (!block.Contains(BlockFlags.DATA)){
+					_runtimeValue = temp;
+				}
 			} else {
 				_runtimeValue = v;
 			}
 			
-			_relay.Dispatch(_runtimeValue);
+			// If dispatch blocked, do not dispatch relay
+			if (!block.Contains(BlockFlags.DISPATCH)){
+				_relay.Dispatch(_runtimeValue);
+			}
 		}
 
-		TData ExecuteDecoratorsOnUpdate(SmartDecoratorBase[] decorators, TData oldValue, TData newValue, RestoreMode restore){
+		TData ExecuteDecoratorsOnUpdate(SmartDecoratorBase[] decorators, TData oldValue, TData newValue, RestoreMode restore, ref BlockFlags block){
 			if (decorators != null && decorators.Length != 0){
 				for (int i=0; i<decorators.Length; ++i){
 					var d = decorators[i];
 					if (d.active){
-						newValue = (decorators[i] as SmartDataDecoratorBase<TData>).OnUpdated(oldValue, newValue, restore);
+						newValue = (decorators[i] as SmartDataDecoratorBase<TData>).OnUpdated(oldValue, newValue, restore, ref block);
+						// If decorators blocked, do not continue to other decorators
+						if (block.Contains(BlockFlags.DECORATORS)) break;
 					}
 				}
 			}

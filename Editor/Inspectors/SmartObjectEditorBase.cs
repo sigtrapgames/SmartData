@@ -169,8 +169,10 @@ namespace SmartData.Editors {
 									icon = new GUIContent(_iconAsset, "Asset");
 								}
 								EditorGUILayout.LabelField(icon, GUILayout.Width(30), GUILayout.Height(25));
-								EditorGUILayout.LabelField(a.Key.name, goName);
+								bool valid = a.Key;
+								EditorGUILayout.LabelField(valid ? a.Key.name : "NULL", goName);
 								GUILayout.FlexibleSpace();
+								GUI.enabled = valid;
 								GUI.backgroundColor = Color.cyan;
 								if (GUILayout.Button("Select", GUILayout.Width(55))){
 									Selection.activeObject = a.Key;
@@ -179,6 +181,7 @@ namespace SmartData.Editors {
 								if (GUILayout.Button("Ping", GUILayout.Width(55))){
 									EditorGUIUtility.PingObject(a.Key);
 								}
+								GUI.enabled = true;
 								GUI.backgroundColor = gbc;
 							} EditorGUILayout.EndHorizontal();
 
@@ -384,15 +387,24 @@ namespace SmartData.Editors {
 
 						// Draw decorator name and buttons
 						EditorGUILayout.BeginHorizontal(); {
-							var spa = so.FindProperty("_active");
-							bool active = spa.boolValue;
+							bool wasActive = false;
+							bool active = false;
+							SerializedProperty editTimeActive = null;
+
+							if (Application.isPlaying){
+								active = wasActive = decorator.active;
+							} else {
+								editTimeActive = so.FindProperty("_active");
+								active = wasActive = editTimeActive.boolValue;
+							}
+							
 							active = EditorGUILayout.ToggleLeft(new GUIContent(dn, GetDecoratorDescription(dt)), active, gs, GUILayout.MaxHeight(25));
-							if (active != spa.boolValue){
-								spa.boolValue = active;
-								so.ApplyModifiedProperties();
+							if (active != wasActive){
 								if (Application.isPlaying){
-									// Call OnActivated/Deactivated and dispatch relay
-									typeof(SmartDecoratorBase).GetMethodPrivate("OnSetActive", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(so.targetObject, new object[]{active});
+									decorator.active = active;
+								} else {
+									editTimeActive.boolValue = active;
+									so.ApplyModifiedProperties();
 								}
 							}
 
