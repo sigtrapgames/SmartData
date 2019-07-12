@@ -38,9 +38,9 @@ namespace SmartData.Editors {
 				id = owner.GetInstanceID();
 			}
 
-			var ownerId = property.FindPropertyRelative("_ownerId");
-			if (ownerId.intValue != id){
-				ownerId.intValue = id;
+			var ownerName = property.FindPropertyRelative("_ownerName");
+			if (ownerName.stringValue != owner.name){
+				ownerName.stringValue = owner.name;
 				metadataGenerated = true;
 			}
 			

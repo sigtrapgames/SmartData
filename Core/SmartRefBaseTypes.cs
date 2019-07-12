@@ -39,12 +39,19 @@ namespace SmartData.Abstract {
 		}
 		#endif
 
+		/// <summary>Used in editor for automatic binding/unbinding of UnityEvent</summary>
 		[SerializeField][HideInInspector]
 		Object _owner;
+		/// <summary>Used for debugging if SmartRefUnbinder mapping fails using _owner</summary>
 		[SerializeField][HideInInspector]
-		int _ownerId;
+		string _ownerName;
 		[SerializeField][HideInInspector]
 		string _propertyPath;
+		/// <summary>
+		/// If true, SmartRef will automatically bind the UnityEvent to the SmartObject's dispatch event, and unbind at end-of-life.
+		/// <para />Negates need for setting unityEventEnabled manually at beginning and end-of-life.
+		/// <para />If false, UnityEvent will still fire if the SmartRef dispatches the SmartObject itself.
+		/// </summary>
 		[SerializeField]
 		protected bool _autoListen = false;
 
