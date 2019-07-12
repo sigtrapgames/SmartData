@@ -236,16 +236,12 @@ namespace SmartData.Abstract {
 				switch (_refType){
 					case RefType.LOCAL: return _value;
 					case RefType.CONST:
-						if (!_smartConst){
-							LogError("{0} mode requires a SmartObject to read.", _refType);
-						}
+						CheckSmartObject(_smartConst, "value read");
 						return _smartConst.value;
 					case RefType.VAR:
 					case RefType.MULTI:
 						var w = _writeable;
-						if (!w){
-							LogError("{0} mode requires a SmartObject to read.", _refType);
-						}
+						CheckSmartObject(w, "value read");
 						return w.value;
 				}
 				return default(TData);
@@ -256,16 +252,12 @@ namespace SmartData.Abstract {
 				switch (_refType){
 					case RefType.LOCAL: return _defaultValue;
 					case RefType.CONST:
-						if (!_smartConst){
-							LogError("{0} mode requires a SmartObject to read.", _refType);
-						}
+						CheckSmartObject(_smartConst, "default value");
 						return _smartConst.value;
 					case RefType.VAR:
 					case RefType.MULTI:
 						var w = _writeable;
-						if (!w){
-							LogError("{0} mode requires a SmartObject to read.", _refType);
-						}
+						CheckSmartObject(w, "default value");
 						return w.defaultValue;
 				}
 				return default(TData);
@@ -277,9 +269,8 @@ namespace SmartData.Abstract {
 					case RefType.CONST:
 						return _smartConst != null;
 					case RefType.VAR:
-						return _smartVar != null;
 					case RefType.MULTI:
-						return _smartMulti != null;
+						return _writeable != null;
 				}
 				return true;
 			}
@@ -304,10 +295,18 @@ namespace SmartData.Abstract {
 					case RefType.VAR:
 						return _smartVar;
 					case RefType.MULTI:
-						return _smartMulti[_multiIndex];
+						return _smartMulti ? _smartMulti[_multiIndex] : null;
 				}
 				return null;
 			}
+		}
+
+		protected bool CheckSmartObject(SmartBase o, string operation){
+			if (!o){
+				LogError("{0} mode requires a SmartObject reference for {1}", _refType, operation);
+				return false;
+			}
+			return true;
 		}
 
 		/// <summary>
@@ -443,17 +442,15 @@ namespace SmartData.Abstract {
 					case RefType.VAR:
 					case RefType.MULTI:
 						var w = _writeable;
-						if (!w){
-							LogError("{0} mode requires a SmartObject to be written to.", _refType);
-							return;
-						}
-						_writeable.value = value;
-						if (!unityEventOnReceive){
-							InvokeUnityEvent(value);
-						}
+						if (CheckSmartObject(w, "value write")){
+							w.value = value;
+							if (!unityEventOnReceive){
+								InvokeUnityEvent(value);
+							}
 						#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
-						TriggerSmartRegistry();
+							TriggerSmartRegistry();
 						#endif
+						}
 						break;
 				}
 			}
@@ -470,17 +467,15 @@ namespace SmartData.Abstract {
 				case RefType.VAR:
 				case RefType.MULTI:
 					var w = _writeable;
-					if (!w){
-						LogError("{0} mode requires a SmartObject to be reset to default.", _refType);
-						return;
-					}
-					_writeable.SetToDefault();
-					if (!unityEventOnReceive){
-						InvokeUnityEvent(value);
-					}
-					#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
-					TriggerSmartRegistry();
-					#endif
+						if (CheckSmartObject(w, "setting default")){
+							w.SetToDefault();
+							if (!unityEventOnReceive){
+								InvokeUnityEvent(value);
+							}
+						#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
+							TriggerSmartRegistry();
+						#endif
+						}
 					break;
 			}
 		}
