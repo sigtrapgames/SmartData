@@ -6,11 +6,76 @@ using System.Reflection;
 using System.IO;
 
 namespace SmartData.Editors {
+
+	/// <summary>
+	/// Reports currently select folder in Project panel.
+	/// Tries to get currently selected asset's folder first.
+	/// If no asset selected, returns last selected asset's folder.
+	/// </summary>
+	public static class ProjectPanelPathUtil {
+		static bool _updateSelectionSubbed = false;
+		static string _lastPath = null;
+		static void OnSelectionChanged(){
+			if (Selection.activeObject == null) return;
+			bool isAsset = !string.IsNullOrEmpty(AssetDatabase.GetAssetPath(Selection.activeObject));
+			if (isAsset){
+				_lastPath = GetPathFromAsset(Selection.activeObject);
+			}
+		}
+		public static void Init(){
+			if (!_updateSelectionSubbed){
+				Selection.selectionChanged += OnSelectionChanged;
+				_updateSelectionSubbed = true;
+			}
+		}
+		static readonly int ASSET_LENGTH = "Assets".Length;
+		static string GetPathFromAsset(Object o){
+			int dpLen = Application.dataPath.Length-ASSET_LENGTH;
+			string path = Application.dataPath.Substring(0, dpLen) + AssetDatabase.GetAssetPath(o);
+			bool success = true;
+			if (!Directory.Exists(path)){
+				path = Path.GetDirectoryName(path);
+				success = (Directory.Exists(path));
+			}
+			if (success){
+				return path.Substring(dpLen, path.Length-dpLen);
+			}
+			return null;
+		}
+
+		public static string GetProjectPath(){
+			Init();
+
+			string path = "Assets";
+			bool found = false;
+			// Try to get current project panel path
+			foreach (UnityEngine.Object obj in Selection.GetFiltered(typeof(UnityEngine.Object), SelectionMode.Assets)){
+				var p = GetPathFromAsset(obj);
+				if (!string.IsNullOrEmpty(p)){
+					path = p;
+					found = true;
+					break;
+				}
+			}
+			// Fallback on last selected
+			if (!found){
+				if (!string.IsNullOrEmpty(_lastPath)) {
+					path = _lastPath;
+					found = true;
+				}
+			}
+			if (found){
+				_lastPath = path;
+			}
+			return path;
+		}
+	}
 	public class SmartTypeCreator : EditorWindow {
 		#region Consts
-		const string LEGALCHARS = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890_<>,.[] ";
+		const string LEGALCHARS = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890_<>,.[]+ ";
 		const string SMARTTYPE_HEADER = "// SMARTTYPE ";
 		const string SMARTTEMPLATE_HEADER = "// SMARTTEMPLATE ";
+		const string SMARTIGNORE_HEADER = "// SMARTIGNORE ";
 		const int WIDTH = 640;
 		const string ICON_MATCH = "icon: ";
 		const string ICON_DEFAULT = "{instanceID: 0}";
@@ -80,22 +145,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 
 			PopulateTemplates();
 
-			string path = "Assets";
-			int assetLength = path.Length;
-			foreach (UnityEngine.Object obj in Selection.GetFiltered(typeof(UnityEngine.Object), SelectionMode.Assets)){
-				int dpLen = Application.dataPath.Length-assetLength;
-				path = Application.dataPath.Substring(0, dpLen) + AssetDatabase.GetAssetPath(obj);
-				bool success = true;
-				if (!Directory.Exists(path)){
-					path = Path.GetDirectoryName(path);
-					success = (Directory.Exists(path));
-				}
-				if (success){
-					_i._path = path.Substring(dpLen, path.Length-dpLen);
-					break;
-				}
-			}
-
+			_i._path = ProjectPanelPathUtil.GetProjectPath();
 			_i._settingsSerialized = new SerializedObject(SmartTypeCreatorSettings.DEFAULT);
 			_i._settingsCustomTemplates = _i._settingsSerialized.FindProperty("_customTemplates");
 			_i._settingsExclude = _i._settingsSerialized.FindProperty("_typeHelperExcludePatterns");
@@ -173,6 +223,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 		float _parseProgress = 0;
 		bool _showTypeTooltip = false;
 
+		Vector2 _scroll;
 		bool _showSettings = false;
 		SerializedObject _settingsSerialized;
 		SerializedProperty _settingsCustomTemplates;
@@ -451,88 +502,90 @@ Uses a simple string.Contains() match. Case-sensitive.
 					} EditorGUILayout.EndHorizontal();
 				} else {
 					// Regen mode
-					EditorGUILayout.LabelField("Regenerate types:");
-					EditorGUILayout.Space();
-					++EditorGUI.indentLevel;
+					_scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.MinHeight(300));{
+						EditorGUILayout.LabelField("Regenerate types:");
+						EditorGUILayout.Space();
+						++EditorGUI.indentLevel;
 
-					GUIStyle infoStyle = new GUIStyle(EditorStyles.helpBox);
-					infoStyle.fontSize = 9;
-					infoStyle.fontStyle = FontStyle.Bold;
-					RectOffset margin = infoStyle.margin;
-					margin.top = 0;
-					margin.bottom = 1;
-					infoStyle.margin = margin;
+						GUIStyle infoStyle = new GUIStyle(EditorStyles.helpBox);
+						infoStyle.fontSize = 9;
+						infoStyle.fontStyle = FontStyle.Bold;
+						RectOffset margin = infoStyle.margin;
+						margin.top = 0;
+						margin.bottom = 1;
+						infoStyle.margin = margin;
 
-					foreach (var a in _regenTypesByPath){
-						EditorGUILayout.BeginHorizontal(); {
-							a.Value.regen = EditorGUILayout.Toggle(a.Value.regen, GUILayout.Width(25));
-							a.Value.show = EditorGUILayout.Foldout(a.Value.show, a.Key);
-						} EditorGUILayout.EndHorizontal();
-						
-						if (a.Value.show){
-							GUI.enabled = a.Value.regen;
-							EditorGUI.indentLevel += 2;
+						foreach (var a in _regenTypesByPath){
 							EditorGUILayout.BeginHorizontal(); {
-								// Filename
-								EditorGUILayout.BeginVertical(); {
-									EditorGUILayout.LabelField("Filename", EditorStyles.miniBoldLabel);
-									foreach (var data in a.Value.data){
-										switch (data.mode){
-											case RegenData.Mode.NEW:
+								a.Value.regen = EditorGUILayout.Toggle(a.Value.regen, GUILayout.Width(25));
+								a.Value.show = EditorGUILayout.Foldout(a.Value.show, a.Key);
+							} EditorGUILayout.EndHorizontal();
+							
+							if (a.Value.show){
+								GUI.enabled = a.Value.regen;
+								EditorGUI.indentLevel += 2;
+								EditorGUILayout.BeginHorizontal(); {
+									// Filename
+									EditorGUILayout.BeginVertical(); {
+										EditorGUILayout.LabelField("Filename", EditorStyles.miniBoldLabel);
+										foreach (var data in a.Value.data){
+											switch (data.mode){
+												case RegenData.Mode.NEW:
+														GUI.backgroundColor = Color.blue;
+														break;
+													case RegenData.Mode.UNSURE:
+														GUI.backgroundColor = Color.yellow;
+														break;
+											}
+											data.regen = EditorGUILayout.ToggleLeft(data.outputFileName, data.regen);	
+											GUI.backgroundColor = gbc;
+										}
+									} EditorGUILayout.EndVertical();
+
+									// SmartType
+									EditorGUILayout.BeginVertical(); {
+										EditorGUILayout.LabelField("SmartType", EditorStyles.miniBoldLabel);
+										foreach (var data in a.Value.data){
+											EditorGUILayout.LabelField(data.typeName);
+										}
+									} EditorGUILayout.EndVertical();
+
+									// Template file
+									EditorGUILayout.BeginVertical(); {
+										EditorGUILayout.LabelField("Template", EditorStyles.miniBoldLabel);
+										foreach (var data in a.Value.data){
+											EditorGUILayout.LabelField(data.templateFileName);
+										}
+									} EditorGUILayout.EndVertical();
+
+									// Additional info
+									EditorGUILayout.BeginVertical(); {
+										EditorGUILayout.LabelField("Misc", EditorStyles.miniBoldLabel);
+										foreach (var data in a.Value.data){
+											switch (data.mode){
+												case RegenData.Mode.NEW:
 													GUI.backgroundColor = Color.blue;
+													EditorGUILayout.LabelField("New", infoStyle);
+													GUI.backgroundColor = gbc;
 													break;
 												case RegenData.Mode.UNSURE:
 													GUI.backgroundColor = Color.yellow;
+													EditorGUILayout.LabelField("Check if this is the right file to overwrite!", infoStyle);
+													GUI.backgroundColor = gbc;
 													break;
+												case RegenData.Mode.OVERWRITE:
+													EditorGUILayout.LabelField("");
+													break;
+											}
 										}
-										data.regen = EditorGUILayout.ToggleLeft(data.outputFileName, data.regen);	
-										GUI.backgroundColor = gbc;
-									}
-								} EditorGUILayout.EndVertical();
-
-								// SmartType
-								EditorGUILayout.BeginVertical(); {
-									EditorGUILayout.LabelField("SmartType", EditorStyles.miniBoldLabel);
-									foreach (var data in a.Value.data){
-										EditorGUILayout.LabelField(data.typeName);
-									}
-								} EditorGUILayout.EndVertical();
-
-								// Template file
-								EditorGUILayout.BeginVertical(); {
-									EditorGUILayout.LabelField("Template", EditorStyles.miniBoldLabel);
-									foreach (var data in a.Value.data){
-										EditorGUILayout.LabelField(data.templateFileName);
-									}
-								} EditorGUILayout.EndVertical();
-
-								// Additional info
-								EditorGUILayout.BeginVertical(); {
-									EditorGUILayout.LabelField("Misc", EditorStyles.miniBoldLabel);
-									foreach (var data in a.Value.data){
-										switch (data.mode){
-											case RegenData.Mode.NEW:
-												GUI.backgroundColor = Color.blue;
-												EditorGUILayout.LabelField("New", infoStyle);
-												GUI.backgroundColor = gbc;
-												break;
-											case RegenData.Mode.UNSURE:
-												GUI.backgroundColor = Color.yellow;
-												EditorGUILayout.LabelField("Check if this is the right file to overwrite!", infoStyle);
-												GUI.backgroundColor = gbc;
-												break;
-											case RegenData.Mode.OVERWRITE:
-												EditorGUILayout.LabelField("");
-												break;
-										}
-									}
-								} EditorGUILayout.EndVertical();
-							} EditorGUILayout.EndHorizontal();
-							EditorGUI.indentLevel -= 2;
-							GUI.enabled = true;
+									} EditorGUILayout.EndVertical();
+								} EditorGUILayout.EndHorizontal();
+								EditorGUI.indentLevel -= 2;
+								GUI.enabled = true;
+							}
 						}
-					}
-					--EditorGUI.indentLevel;
+						--EditorGUI.indentLevel;
+					} EditorGUILayout.EndScrollView();
 
 					EditorGUILayout.Space();
 					EditorGUILayout.Space();
@@ -574,7 +627,7 @@ Uses a simple string.Contains() match. Case-sensitive.
 				string path = AssetDatabase.GUIDToAssetPath(f);
 				using (var file = File.OpenText(SmartEditorUtils.ToAbsolutePath(path))){
 					var line = file.ReadLine();
-					if (line.StartsWith(SMARTTYPE_HEADER)){
+					if (!string.IsNullOrEmpty(line) && line.StartsWith(SMARTTYPE_HEADER)){
 						RegenData r = new RegenData();
 						
 						// Get data type from header
@@ -1088,6 +1141,9 @@ Uses a simple string.Contains() match. Case-sensitive.
 					return false;
 				}
 			}
+			// Nested types
+			typeName = typeName.Replace('+','.');
+			
 			string prettyName = PrettyTypeName(typeName);
 			if (string.IsNullOrEmpty(prettyName)) return false;
 
@@ -1213,9 +1269,31 @@ Uses a simple string.Contains() match. Case-sensitive.
 
 		void Write(string outputFileName, string templateFileName, string t, string fullPath, ref string log){
 			try {
+				// Check type exclusions
+				TextAsset template = Resources.Load<TextAsset>(templateFileName);
+				var templateLines = template.text.Split('\n','\r');
+				bool skip = false;
+				foreach (var l in templateLines){
+					if (l.StartsWith(SMARTIGNORE_HEADER)){
+						var header = l.Replace(SMARTIGNORE_HEADER,"");
+						var ignores = header.Split(' ');
+						foreach (var i in ignores){
+							if (i == t){
+								skip = true;
+								break;
+							}
+						}
+						break;
+					}
+				}
+				if (skip){
+					Debug.LogWarningFormat("Ignoring type {0} for template {1}", t, templateFileName);
+					return;
+				}
+
 				string format = string.Format(
 					"{0}{{0}}\n{1}{{3}}\n// Do not move or delete the above lines\n\n{2}",
-					SMARTTYPE_HEADER, SMARTTEMPLATE_HEADER, Resources.Load<TextAsset>(templateFileName).text
+					SMARTTYPE_HEADER, SMARTTEMPLATE_HEADER, template.text
 				);
 				if (!Directory.Exists(fullPath)){
 					Directory.CreateDirectory(fullPath);

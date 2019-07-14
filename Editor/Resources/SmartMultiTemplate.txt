@@ -31,7 +31,7 @@ namespace SmartData.Smart{1} {{
 		}}
 		
 		[SerializeField]
-		Data.{1}Var.{1}Event _onUpdate;
+		Data.{1}Var.{1}Event _onUpdate = null;
 		
 		protected override System.Action<{0}> GetUnityEventInvoke(){{
 			return _onUpdate.Invoke;
@@ -49,7 +49,7 @@ namespace SmartData.Smart{1} {{
 		}}
 		
 		[SerializeField]
-		Data.{1}Var.{1}Event _onUpdate;
+		Data.{1}Var.{1}Event _onUpdate = null;
 		
 		protected override System.Action<{0}> GetUnityEventInvoke(){{
 			return _onUpdate.Invoke;

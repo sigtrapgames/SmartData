@@ -54,11 +54,15 @@ namespace SmartData.Abstract {
 			}
 		}
 	}
+	
 	public abstract class WriteSmartBase<TData, TRef> : SmartComponentBase
 		where TRef : ISmartRefWriter<TData>
 	{
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)][ForceHideEvent]
-		protected TRef _data;
+		protected TRef _data = default(TRef);
+
+		[SerializeField, Tooltip("Value to set when Set() is called")]
+		TData _valueToSet = default(TData);
 
 		protected override bool bindEvents {get {return false;}}
 
@@ -69,6 +73,10 @@ namespace SmartData.Abstract {
 		}
 		public void Dispatch(){
 			_data.Dispatch();
+		}
+		/// <summary> For UnityEvent calls on data types UnityEvent won't serialize </summary>
+		public void Set(){
+			value = _valueToSet;
 		}
 		protected override void EnableUnityEvents(bool enable){}	// Write-only - UnityEvent never used.
 	}

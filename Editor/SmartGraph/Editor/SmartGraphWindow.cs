@@ -19,8 +19,6 @@ namespace SmartData.Graph
 
 		private const float kBarHeight = 17;
 
-		bool _initialised = false;
-
 		[MenuItem("Window/Smart Graph editor")]
 		static void ShowEditor()
 		{

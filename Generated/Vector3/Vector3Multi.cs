@@ -35,7 +35,7 @@ namespace SmartData.SmartVector3 {
 		}
 		
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onUpdate;
+		Data.Vector3Var.Vector3Event _onUpdate = null;
 		
 		protected override System.Action<Vector3> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -53,7 +53,7 @@ namespace SmartData.SmartVector3 {
 		}
 		
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onUpdate;
+		Data.Vector3Var.Vector3Event _onUpdate = null;
 		
 		protected override System.Action<Vector3> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

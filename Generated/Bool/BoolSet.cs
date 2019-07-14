@@ -33,16 +33,24 @@ namespace SmartData.SmartBool {
 	[System.Serializable]
 	public class BoolSetReader : SmartSetRefBase<bool, BoolSet>, ISmartSetRefReader<bool> {
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onAdd;
+		Data.BoolVar.BoolEvent _onAdd = null;
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onRemove;
+		Data.BoolVar.BoolEvent _onRemove = null;
+		[SerializeField]
+		Data.BoolVar.BoolEvent _onChange = null;
 		
-		protected override System.Action<bool, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
+		protected override System.Action<SetEventData<bool>> GetUnityEventInvoke(){
+			return (d)=>{
+				switch (d.operation){
+					case SetOperation.ADDED:
+						_onAdd.Invoke(d.value);
+						break;
+					case SetOperation.REMOVED:
+						_onRemove.Invoke(d.value);
+						break;
+					case SetOperation.CHANGED:
+						_onChange.Invoke(d.value);
+						break;
 				}
 			};
 		}
@@ -55,25 +63,27 @@ namespace SmartData.SmartBool {
 	[System.Serializable]
 	public class BoolSetWriter : SmartSetRefWriterBase<bool, BoolSet>, ISmartSetRefReader<bool> {
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onAdd;
+		Data.BoolVar.BoolEvent _onAdd = null;
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onRemove;
+		Data.BoolVar.BoolEvent _onRemove = null;
+		[SerializeField]
+		Data.BoolVar.BoolEvent _onChange = null;
 		
-		protected override System.Action<bool, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
-				}
-			};
+		protected override System.Action<SetEventData<bool>> GetUnityEventInvoke(){
+			return InvokeUnityEvent;
 		}
 		
-		protected sealed override void InvokeUnityEvent(bool value, bool added){
-			if (added){
-				_onAdd.Invoke(value);
-			} else {
-				_onRemove.Invoke(value);
+		protected sealed override void InvokeUnityEvent(SetEventData<bool> d){
+			switch (d.operation){
+				case SetOperation.ADDED:
+					_onAdd.Invoke(d.value);
+					break;
+				case SetOperation.REMOVED:
+					_onRemove.Invoke(d.value);
+					break;
+				case SetOperation.CHANGED:
+					_onChange.Invoke(d.value);
+					break;
 			}
 		}
 		

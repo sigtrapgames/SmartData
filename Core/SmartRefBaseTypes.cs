@@ -29,7 +29,7 @@ namespace SmartData.Abstract {
 	/// Non-generic abstract base for all SmartRefs. Do not reference.
 	/// </summary>
 	public abstract class SmartRefBase : ISmartRef {
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected abstract SmartBase _EDITOR_GetSmartObject(out bool useMultiIndex);
 		protected virtual bool _EDITOR_GetIsWritable(){return false;}
 		public static SmartBase _EDITOR_GetSmartObject(System.Type t, SmartRefBase target, out bool useMultiIndex, out bool writeable){
@@ -39,15 +39,35 @@ namespace SmartData.Abstract {
 		}
 		#endif
 
+		protected void LogError(string format, params object[] args){
+			format = string.Format("{0} on {1}: {2}", GetType().Name, _ownerName, format);
+			if (_owner){
+				Debug.LogErrorFormat(_owner, format, args);
+			} else {
+				Debug.LogErrorFormat(format, args);
+			}
+		}
+		/// <summary>Used in editor for automatic binding/unbinding of UnityEvent</summary>
 		[SerializeField][HideInInspector]
-		Object _owner;
+		Object _owner = null;
+		/// <summary>Used for debugging if SmartRefUnbinder mapping fails using _owner</summary>
 		[SerializeField][HideInInspector]
-		int _ownerId;
+		string _ownerName = null;
+	#pragma warning disable 0414
 		[SerializeField][HideInInspector]
-		string _propertyPath;
+		string _propertyPath = null;
+	#pragma warning restore 0414
+		/// <summary>
+		/// If true, SmartRef will automatically bind the UnityEvent to the SmartObject's dispatch event, and unbind at end-of-life.
+		/// <para />Negates need for setting unityEventEnabled manually at beginning and end-of-life.
+		/// <para />If false, UnityEvent will still fire if the SmartRef dispatches the SmartObject itself.
+		/// </summary>
 		[SerializeField]
 		protected bool _autoListen = false;
 
+		/// <summary>
+		/// Does this SmartRef have an underlying SmartObject or local value for reading/writing?
+		/// </summary>
 		public abstract bool isValid {get;}
 		/// <summary>
 		/// Gets the name of the underlying smart object, or null if using a local value.
@@ -114,7 +134,7 @@ namespace SmartData.Abstract {
 	/// </summary>
 	public abstract class SmartRefMultiableBase : SmartRefBase {
 		[SerializeField]
-		protected int _multiIndex;
+		protected int _multiIndex = 0;
 	}
 	/// <summary>
 	/// Non-generic abstract base for SmartDataRefs, for Editor purposes. Do not reference.
@@ -136,13 +156,10 @@ namespace SmartData.Abstract {
 		).ToArray();
 		protected static readonly RefType[] TYPES_WRITABLE = 
 			TYPES_ALL.Where((r)=>{return r != RefType.CONST;}).ToArray();
-		protected static readonly RefType[] TYPES_EVENTABLE = 
-			TYPES_WRITABLE.Where((r)=>{return r != RefType.LOCAL;}).ToArray();
 
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected static readonly string[] TYPENAMES_ALL = GetTypenames(TYPES_ALL);
 		protected static readonly string[] TYPENAMES_WRITABLE = GetTypenames(TYPES_WRITABLE);
-		protected static readonly string[] TYPENAMES_EVENTABLE = GetTypenames(TYPES_EVENTABLE);
 
 		static string[] GetTypenames(RefType[] rts){
 			string[] result = new string[rts.Length];
@@ -158,8 +175,8 @@ namespace SmartData.Abstract {
 
 		protected bool _isEventable {
 			get {
-				for (int i=0; i<TYPES_EVENTABLE.Length; ++i){
-					if (TYPES_EVENTABLE[i] == _refType) return true;
+				for (int i=0; i<TYPES_WRITABLE.Length; ++i){
+					if (TYPES_WRITABLE[i] == _refType) return true;
 				}
 				return false;
 			}
@@ -174,7 +191,7 @@ namespace SmartData.Abstract {
 		where TConst : SmartConst<TData>
 		where TMulti : SmartMulti<TData, TVar>
 	{
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		static RefType[] _EDITOR_GetUsableRefTypes(){
 			return TYPES_ALL;
 		}
@@ -194,6 +211,9 @@ namespace SmartData.Abstract {
 			}
 			return null;
 		}
+		#endif
+
+		#if UNITY_EDITOR
 		protected virtual void TriggerSmartRegistry(){
 			if (_refType == RefType.MULTI){
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartMulti, _writeable);
@@ -204,23 +224,27 @@ namespace SmartData.Abstract {
 		#endif
 
 		[SerializeField]
-		protected TData _value;
-		protected TData _defaultValue;
+		protected TData _value = default(TData);
+		protected TData _defaultValue = default(TData);
 		[SerializeField]
-		TConst _smartConst;
+		TConst _smartConst = null;
 		[SerializeField]
-		TVar _smartVar;
+		TVar _smartVar = null;
 		[SerializeField]
-		TMulti _smartMulti;
+		TMulti _smartMulti = null;
 
 		public TData value {
 			get {
 				switch (_refType){
 					case RefType.LOCAL: return _value;
-					case RefType.CONST: return _smartConst.value;
+					case RefType.CONST:
+						CheckSmartObject(_smartConst, "value read");
+						return _smartConst.value;
 					case RefType.VAR:
 					case RefType.MULTI:
-						return _writeable.value;
+						var w = _writeable;
+						CheckSmartObject(w, "value read");
+						return w.value;
 				}
 				return default(TData);
 			}
@@ -229,10 +253,14 @@ namespace SmartData.Abstract {
 			get {
 				switch (_refType){
 					case RefType.LOCAL: return _defaultValue;
-					case RefType.CONST: return _smartConst.value;
+					case RefType.CONST:
+						CheckSmartObject(_smartConst, "default value");
+						return _smartConst.value;
 					case RefType.VAR:
 					case RefType.MULTI:
-						return _writeable.defaultValue;
+						var w = _writeable;
+						CheckSmartObject(w, "default value");
+						return w.defaultValue;
 				}
 				return default(TData);
 			}
@@ -243,9 +271,8 @@ namespace SmartData.Abstract {
 					case RefType.CONST:
 						return _smartConst != null;
 					case RefType.VAR:
-						return _smartVar != null;
 					case RefType.MULTI:
-						return _smartMulti != null;
+						return _writeable != null;
 				}
 				return true;
 			}
@@ -270,10 +297,18 @@ namespace SmartData.Abstract {
 					case RefType.VAR:
 						return _smartVar;
 					case RefType.MULTI:
-						return _smartMulti[_multiIndex];
+						return _smartMulti ? _smartMulti[_multiIndex] : null;
 				}
 				return null;
 			}
+		}
+
+		protected bool CheckSmartObject(SmartBase o, string operation){
+			if (!o){
+				LogError("{0} mode requires a SmartObject reference for {1}", _refType, operation);
+				return false;
+			}
+			return true;
 		}
 
 		/// <summary>
@@ -309,31 +344,42 @@ namespace SmartData.Abstract {
 		public IRelayLink<TData> relay {
 			get {
 				if (!_isEventable) return null;
+				if (_refType == RefType.LOCAL){
+					return _relay.link;
+				}
 				return _writeable.relay;
 			}
 		}
+		protected Relay<TData> _relay = new Relay<TData>();
+
 		/// <summary>
 		/// If underlying object supports events, binds a listener to it which passes current value.
 		/// <param name="callNow">If true, call just this listener with the current value of the SmartData.</param>
 		/// </summary>
 		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
-			if (!_isEventable) return null;
-			return _writeable.BindListener(listener, callNow);
+			if (!_isEventable){
+				LogError("{0} mode does not support binding.", _refType);
+				return null;
+			}
+			var r = relay;
+			if (r == null){
+				LogError("{0} mode requires a SmartObject reference for binding.", _refType);
+				return null;
+			}
+			var b = relay.BindListener(listener);
+			if (callNow){
+				listener(value);
+			}
+			return b;
 		}
 		/// <summary>
 		/// If underlying object supports events, binds a listener to it which passes nothing.
 		/// </summary>
 		public IRelayBinding BindListener(System.Action listener){
-			if (!_isEventable) return null;
-			return _writeable.BindListener(listener);
+			return BindListener((t)=>{listener();});
 		}
 		protected override IRelayBinding BindUnityEvent(){
-			if (!_isEventable) return null;
-			var w = _writeable;
-			if (w != null){
-				return w.BindListener(GetUnityEventInvoke());
-			}
-			return null;
+			return BindListener(GetUnityEventInvoke());
 		}
 		protected abstract System.Action<TData> GetUnityEventInvoke();
 
@@ -363,6 +409,10 @@ namespace SmartData.Abstract {
 			}
 		}
 		#endregion
+
+		public static implicit operator TData(SmartDataRefBase<TData, TVar, TConst, TMulti> r){
+			return r.value;
+		}
 	}
 	/// <summary>
 	/// Abstract base for SmartRefWriters. Do not reference. Will not serialize.
@@ -373,7 +423,7 @@ namespace SmartData.Abstract {
 		where TConst : SmartConst<TData>
 		where TMulti : SmartMulti<TData, TVar>
 	{
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		static RefType[] _EDITOR_GetUsableRefTypes(){{
 			return TYPES_WRITABLE;
 		}}
@@ -389,16 +439,20 @@ namespace SmartData.Abstract {
 				switch (_refType){
 					case RefType.LOCAL:
 						_value = value;
+						DispatchLocal();
 						break;
 					case RefType.VAR:
 					case RefType.MULTI:
-						_writeable.value = value;
-						if (!unityEventOnReceive){
-							InvokeUnityEvent(value);
-						}
+						var w = _writeable;
+						if (CheckSmartObject(w, "value write")){
+							w.value = value;
+							if (!unityEventOnReceive){
+								InvokeUnityEvent(value);
+							}
 						#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
-						TriggerSmartRegistry();
+							TriggerSmartRegistry();
 						#endif
+						}
 						break;
 				}
 			}
@@ -410,16 +464,20 @@ namespace SmartData.Abstract {
 			switch (_refType){
 				case RefType.LOCAL:
 					_value = _defaultValue;
+					DispatchLocal();
 					break;
 				case RefType.VAR:
 				case RefType.MULTI:
-					_writeable.SetToDefault();
-					if (!unityEventOnReceive){
-						InvokeUnityEvent(value);
-					}
-					#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
-					TriggerSmartRegistry();
-					#endif
+					var w = _writeable;
+						if (CheckSmartObject(w, "setting default")){
+							w.SetToDefault();
+							if (!unityEventOnReceive){
+								InvokeUnityEvent(value);
+							}
+						#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
+							TriggerSmartRegistry();
+						#endif
+						}
 					break;
 			}
 		}
@@ -428,10 +486,19 @@ namespace SmartData.Abstract {
 		/// Useful when changing contents of underlying reference-type data.
 		/// </summary>
 		public void Dispatch(){
+			if (_refType == RefType.LOCAL){
+				DispatchLocal();
+			}
 			var w = _writeable;
 			if (w != null){
 				w.Dispatch();
 			}
+			if (!unityEventOnReceive){
+				InvokeUnityEvent(value);
+			}
+		}
+		void DispatchLocal(){
+			_relay.Dispatch(_value);
 			if (!unityEventOnReceive){
 				InvokeUnityEvent(value);
 			}
@@ -450,7 +517,7 @@ namespace SmartData.Abstract {
 		where TVar:SmartDecorableBase
 	{
 		[SerializeField]
-		TMulti _smartMulti;
+		TMulti _smartMulti = null;
 
 		public override bool isValid {get {return _smartMulti != null;}}
 		/// <summary>Returns the name of the referenced SmartMulti (not the underlying SmartVar element)</summary>
@@ -481,18 +548,34 @@ namespace SmartData.Abstract {
 				}
 			}
 		}
+		public int count {
+			get {return _multi == null ? 0 : _multi.count;}
+		}
 
 		protected TMulti _multi {get {return _smartMulti;}}
+
+		/// <summary>
+		/// Raised when a element (SmartObject or local list entry) is added or removed (not currently supported) to/from this MultiRef.
+		/// First int is new count, second is old count. Returns null if no underlying SmartMulti.
+		/// </summary>
+		public IRelayLink<int, int> onElementCountChanged {
+			get {
+				if (_multi){
+					return _multi.onElementCountChanged;
+				}
+				return null;
+			}	
+		}
 	}
 	/// <summary>
 	/// Abstract base for SmartDataMultiRefs. Do not reference. Will not serialize.
 	/// </summary>
 	public abstract class SmartDataMultiRef<TList, TData, TVar> : 
-		SmartMultiRef<TList, TVar>, ISmartDataMultiRefReader<TData, TVar>
-		where TList:SmartMulti<TData, TVar>
+		SmartMultiRef<TList, TVar>, ISmartDataMultiRefReader<TData, TVar>, IEnumerable<TData>
+		where TList:SmartMulti<TData, TVar>, IEnumerable<TData>
 		where TVar:SmartVar<TData>
 	{
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected sealed override SmartBase _EDITOR_GetSmartObject(out bool useMultiIndex){
 			useMultiIndex = true;
 			return _multi;
@@ -505,17 +588,38 @@ namespace SmartData.Abstract {
 		public TData value {
 			get {return _multi[index].value;}
 		}
+		/// <summary>
+		/// Read-only access to the indexed SmartVar's default value.
+		/// </summary>
 		public TData defaultValue {
 			get {return _multi[index].defaultValue;}
 		}
+		/// <summary>
+		/// Read-only access to SmartVar values by index.
+		/// </summary>
+		public TData this[int index]{
+			get {return _multi[index].value;}
+		}
 		public IRelayLink<TData> relay {get {return _multi[index].relay;}}
 
-		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
-			var result = relay.BindListener(listener);
+		public IEnumerator<TData> GetEnumerator(){
+			return _multi.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return ((IEnumerable)_multi).GetEnumerator();
+		}
+
+		/// <summary>Bind a listener to a specific SmartObject element within the referenced Multi.</summary>
+		public IRelayBinding BindListener(System.Action<TData> listener, int multiIndex, bool callNow=false){
+			var result = _multi[multiIndex].BindListener(listener);
 			if (callNow){
-				_multi[index].Dispatch();
+				_multi[multiIndex].Dispatch();
 			}
 			return result;
+		}
+		/// <summary>Bind a listener to the element specified by this instance's current index field.</summary>
+		public IRelayBinding BindListener(System.Action<TData> listener, bool callNow=false){
+			return BindListener(listener, index, callNow);
 		}
 		public IRelayBinding BindListener(System.Action listener){
 			return relay.BindListener((x)=>{listener();});
@@ -534,19 +638,29 @@ namespace SmartData.Abstract {
 		where TList:SmartMulti<TData, TVar>
 		where TVar:SmartVar<TData>
 	{
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected sealed override bool _EDITOR_GetIsWritable(){return true;}
 		#endif
 
+		/// <summary>
+		/// The indexed SmartVar value.
+		/// </summary>
 		new public TData value {
 			get {return base.value;}
+			set {this[index] = value;}
+		}
+		/// <summary>
+		/// Underlying SmartVar values by index.
+		/// </summary>
+		new public TData this[int index]{
+			get {return _multi[index].value;}
 			set {
-				_smartVar.value = value;
+				_multi[index].value = value;
 				if (!unityEventOnReceive){
 					InvokeUnityEvent(value);
 				}
 				#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
-				Editors.SmartDataRegistry.OnRefCallToSmart(this, _multi, _smartVar);
+				Editors.SmartDataRegistry.OnRefCallToSmart(this, _multi, _multi[index]);
 				#endif
 			}
 		}
@@ -583,10 +697,10 @@ namespace SmartData.Abstract {
 	/// <summary>
 	/// Abstract base for SmartSetRefs. Do not reference.
 	/// </summary>
-	public abstract class SmartSetRefBase<TData, TWrite> : SmartSetRefBase, ISerializationCallbackReceiver
+	public abstract class SmartSetRefBase<TData, TWrite> : SmartSetRefBase, ISerializationCallbackReceiver, IEnumerable<TData>
 		where TWrite : SmartSet<TData>, ISmartSet<TData>
 	{
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected sealed override SmartBase _EDITOR_GetSmartObject(out bool useMultiIndex){
 			useMultiIndex = false;
 			if (_useList) return null;
@@ -597,11 +711,11 @@ namespace SmartData.Abstract {
 		[SerializeField]
 		protected bool _useList = false;
 		[SerializeField]
-		protected TWrite _smartSet;
+		protected TWrite _smartSet = null;
 		[SerializeField]
 		List<TData> _list = new List<TData>();
 		[SerializeField]
-		protected List<TData> _runtimeList;
+		protected List<TData> _runtimeList = null;
 
 		protected bool _isEventable {get {return !_useList;}}
 		public override bool isValid {get {return (_useList ? true : _smartSet != null);}}
@@ -636,13 +750,21 @@ namespace SmartData.Abstract {
 		public int count {
 			get {return _useList ? _runtimeList.Count : _smartSet.count;}
 		}
-		public IRelayLink<TData, bool> relay {
+		public IRelayLink<SetEventData<TData>> relay {
 			get {
 				if (!_isEventable) return null;
 				return _smartSet.relay;
 			}
 		}
-		public IRelayBinding BindListener(System.Action<TData, bool> listener){
+
+		IEnumerator<TData> IEnumerable<TData>.GetEnumerator(){
+			return _useList ? _runtimeList.GetEnumerator() : _smartSet.GetEnumerator();
+		}
+		IEnumerator IEnumerable.GetEnumerator(){
+			return _useList ? _runtimeList.GetEnumerator() : _smartSet.GetEnumerator();
+		}
+
+		public IRelayBinding BindListener(System.Action<SetEventData<TData>> listener){
 			if (!_isEventable) return null;
 			return _smartSet.BindListener(listener);
 		}
@@ -650,7 +772,7 @@ namespace SmartData.Abstract {
 			if (!_isEventable) return null;
 			return _smartSet.BindListener(listener);
 		}
-		protected abstract System.Action<TData, bool> GetUnityEventInvoke();
+		protected abstract System.Action<SetEventData<TData>> GetUnityEventInvoke();
 		protected override IRelayBinding BindUnityEvent(){
 			if (_smartSet == null) return null;
 			return relay.BindListener(GetUnityEventInvoke());
@@ -661,7 +783,7 @@ namespace SmartData.Abstract {
 		SmartSetRefBase<TData, TWrite>, ISmartSetRefWriter<TData>
 		where TWrite : SmartSet<TData>, ISmartSet<TData>
 	{
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected sealed override bool _EDITOR_GetIsWritable(){return true;}
 		#endif
 
@@ -684,7 +806,8 @@ namespace SmartData.Abstract {
 			} else {
 				bool result = _smartSet.Add(element, allowDuplicates);
 				if (!unityEventOnReceive){
-					InvokeUnityEvent(_smartSet[_smartSet.count-1], true);
+					int index = _smartSet.count-1;
+					InvokeUnityEvent(new SetEventData<TData>(_smartSet[index], default(TData), SetOperation.ADDED, index));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
@@ -693,13 +816,15 @@ namespace SmartData.Abstract {
 			}
 			return false;
 		}
-		public bool Remove(TData element){
+		public int Remove(TData element){
 			if (_useList){
-				return _runtimeList.Remove(element);
+				int result = _runtimeList.IndexOf(element);
+				_runtimeList.Remove(element);
+				return result;
 			} else {
-				bool result = _smartSet.Remove(element);
-				if (!unityEventOnReceive){
-					InvokeUnityEvent(element, false);
+				int result = _smartSet.Remove(element);
+				if (result >= 0 && !unityEventOnReceive){
+					InvokeUnityEvent(new SetEventData<TData>(element, element, SetOperation.REMOVED, result));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
@@ -714,7 +839,7 @@ namespace SmartData.Abstract {
 				TData element = _runtimeList[index];
 				_runtimeList.RemoveAt(index);
 				if (!unityEventOnReceive){
-					InvokeUnityEvent(element, false);
+					InvokeUnityEvent(new SetEventData<TData>(element, element, SetOperation.REMOVED, index));
 				}
 				#if UNITY_EDITOR
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartSet);
@@ -723,6 +848,13 @@ namespace SmartData.Abstract {
 				result = _smartSet.RemoveAt(index);
 			}
 			return result;
+		}
+		public void Clear(){
+			if (_useList){
+				_runtimeList.Clear();
+			} else {
+				_smartSet.Clear();
+			}
 		}
 		/// <summary>
 		/// Reset to initial serialized values.
@@ -735,7 +867,7 @@ namespace SmartData.Abstract {
 			}
 		}
 
-		protected abstract void InvokeUnityEvent(TData value, bool added);
+		protected abstract void InvokeUnityEvent(SetEventData<TData> data);
 	}
 	#endregion
 }

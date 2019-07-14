@@ -35,7 +35,7 @@ namespace SmartData.SmartBool {
 		}
 		
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onUpdate;
+		Data.BoolVar.BoolEvent _onUpdate = null;
 		
 		protected override System.Action<bool> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -53,7 +53,7 @@ namespace SmartData.SmartBool {
 		}
 		
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onUpdate;
+		Data.BoolVar.BoolEvent _onUpdate = null;
 		
 		protected override System.Action<bool> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

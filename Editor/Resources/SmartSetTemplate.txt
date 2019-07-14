@@ -29,16 +29,24 @@ namespace SmartData.Smart{1} {{
 	[System.Serializable]
 	public class {1}SetReader : SmartSetRefBase<{0}, {1}Set>, ISmartSetRefReader<{0}> {{
 		[SerializeField]
-		Data.{1}Var.{1}Event _onAdd;
+		Data.{1}Var.{1}Event _onAdd = null;
 		[SerializeField]
-		Data.{1}Var.{1}Event _onRemove;
+		Data.{1}Var.{1}Event _onRemove = null;
+		[SerializeField]
+		Data.{1}Var.{1}Event _onChange = null;
 		
-		protected override System.Action<{0}, bool> GetUnityEventInvoke(){{
-			return (e,a)=>{{
-				if (a){{
-					_onAdd.Invoke(e);
-				}} else {{
-					_onRemove.Invoke(e);
+		protected override System.Action<SetEventData<{0}>> GetUnityEventInvoke(){{
+			return (d)=>{{
+				switch (d.operation){{
+					case SetOperation.ADDED:
+						_onAdd.Invoke(d.value);
+						break;
+					case SetOperation.REMOVED:
+						_onRemove.Invoke(d.value);
+						break;
+					case SetOperation.CHANGED:
+						_onChange.Invoke(d.value);
+						break;
 				}}
 			}};
 		}}
@@ -51,25 +59,27 @@ namespace SmartData.Smart{1} {{
 	[System.Serializable]
 	public class {1}SetWriter : SmartSetRefWriterBase<{0}, {1}Set>, ISmartSetRefReader<{0}> {{
 		[SerializeField]
-		Data.{1}Var.{1}Event _onAdd;
+		Data.{1}Var.{1}Event _onAdd = null;
 		[SerializeField]
-		Data.{1}Var.{1}Event _onRemove;
+		Data.{1}Var.{1}Event _onRemove = null;
+		[SerializeField]
+		Data.{1}Var.{1}Event _onChange = null;
 		
-		protected override System.Action<{0}, bool> GetUnityEventInvoke(){{
-			return (e,a)=>{{
-				if (a){{
-					_onAdd.Invoke(e);
-				}} else {{
-					_onRemove.Invoke(e);
-				}}
-			}};
+		protected override System.Action<SetEventData<{0}>> GetUnityEventInvoke(){{
+			return InvokeUnityEvent;
 		}}
 		
-		protected sealed override void InvokeUnityEvent({0} value, bool added){{
-			if (added){{
-				_onAdd.Invoke(value);
-			}} else {{
-				_onRemove.Invoke(value);
+		protected sealed override void InvokeUnityEvent(SetEventData<{0}> d){{
+			switch (d.operation){{
+				case SetOperation.ADDED:
+					_onAdd.Invoke(d.value);
+					break;
+				case SetOperation.REMOVED:
+					_onRemove.Invoke(d.value);
+					break;
+				case SetOperation.CHANGED:
+					_onChange.Invoke(d.value);
+					break;
 			}}
 		}}
 		

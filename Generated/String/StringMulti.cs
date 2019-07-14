@@ -35,7 +35,7 @@ namespace SmartData.SmartString {
 		}
 		
 		[SerializeField]
-		Data.StringVar.StringEvent _onUpdate;
+		Data.StringVar.StringEvent _onUpdate = null;
 		
 		protected override System.Action<string> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -53,7 +53,7 @@ namespace SmartData.SmartString {
 		}
 		
 		[SerializeField]
-		Data.StringVar.StringEvent _onUpdate;
+		Data.StringVar.StringEvent _onUpdate = null;
 		
 		protected override System.Action<string> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

@@ -34,7 +34,7 @@ namespace SmartData.SmartEvent {
 	/// </summary>
 	[System.Serializable]
 	public class EventMultiListener : SmartMultiRef<EventMulti,  EventVar> {
-		#if UNITY_EDITOR
+		#if UNITY_EDITOR || DEVELOPMENT_BUILD
 		protected sealed override SmartBase _EDITOR_GetSmartObject(out bool useMultiIndex){
 			useMultiIndex = true;
 			return _multi;
@@ -42,7 +42,7 @@ namespace SmartData.SmartEvent {
 		#endif
 
 		[SerializeField]
-		UnityEvent _onEvent;
+		UnityEvent _onEvent = null;
 
 		protected override IRelayBinding BindUnityEvent(){
 			return _event.relay.BindListener(_onEvent.Invoke);

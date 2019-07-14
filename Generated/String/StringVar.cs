@@ -36,7 +36,7 @@ namespace SmartData.SmartString {
 	[System.Serializable]
 	public class StringReader : SmartDataRefBase<string, StringVar, StringConst, StringMulti> {
 		[SerializeField]
-		Data.StringVar.StringEvent _onUpdate;
+		Data.StringVar.StringEvent _onUpdate = null;
 		
 		protected sealed override System.Action<string> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -50,7 +50,7 @@ namespace SmartData.SmartString {
 	[System.Serializable]
 	public class StringWriter : SmartDataRefWriter<string, StringVar, StringConst, StringMulti> {
 		[SerializeField]
-		Data.StringVar.StringEvent _onUpdate;
+		Data.StringVar.StringEvent _onUpdate = null;
 		
 		protected sealed override System.Action<string> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

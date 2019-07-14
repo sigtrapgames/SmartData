@@ -45,12 +45,14 @@ namespace SmartData.Editors {
 			bool forceExpand;
 			_forceEventable = IsForceEventable(property, fieldInfo, out forceExpand);
 			if (_forceEventable){
+				_isEventable = true;
 				GUI.enabled = !Application.isPlaying;	
 				EditorGUI.PropertyField(fieldPos, property.FindPropertyRelative(SMART_PROP), GUIContent.none);
 				DrawReadWriteLabel(rwPos, property, fieldInfo);
 			} else {
 				var useListProp = property.FindPropertyRelative("_useList");
 				_useList = useListProp.boolValue;
+				_isEventable = !_useList;
 
 				GUI.enabled = !Application.isPlaying;
 				if (GUI.Button(btnPos, new GUIContent(_useList ? "L" : "S", _useList ? "Using local set" : "Using SmartSet"))){
@@ -70,7 +72,7 @@ namespace SmartData.Editors {
 					lProp.Next(true);
 					EditorGUI.PropertyField(fieldPos, lProp, new GUIContent("Local Set"), true);
 				} else {
-					EditorGUI.PropertyField(fieldPos, property.FindPropertyRelative(SMART_PROP), GUIContent.none);
+					DrawSmart(fieldPos, property.FindPropertyRelative(SMART_PROP), property, min, max, true);
 				}
 			}
 			GUI.enabled = true;

@@ -32,13 +32,21 @@ namespace SmartData.Components {
 				var refs = SmartData.Editors.SmartDataRegistry.GetSmartReferences();
 				if (refs.Count > 0){
 					FieldInfo autoListen = typeof(SmartData.Abstract.SmartRefBase).GetField("_autoListen", BindingFlags.NonPublic | BindingFlags.Instance);
-					FieldInfo ownerGoId = typeof(SmartData.Abstract.SmartRefBase).GetField("_ownerGoId", BindingFlags.NonPublic | BindingFlags.Instance);
+					FieldInfo owner = typeof(SmartData.Abstract.SmartRefBase).GetField("_owner", BindingFlags.NonPublic | BindingFlags.Instance);
+					FieldInfo ownerName = typeof(SmartData.Abstract.SmartRefBase).GetField("_ownerName", BindingFlags.NonPublic | BindingFlags.Instance);
 					foreach (var a in refs){
 						if (a.Key.IsAlive){
 							var sr = (SmartData.Abstract.SmartRefBase)a.Key.Target;
 							if ((bool)autoListen.GetValue(sr)){
-								GameObject ownerGo = (GameObject)EditorUtility.InstanceIDToObject((int)ownerGoId.GetValue(sr));
-								SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(sr, ownerGo, true);
+								GameObject ownerGo = (GameObject)owner.GetValue(sr);
+								if (!ownerGo){
+									Debug.LogErrorFormat(
+										"Error initialising SmartRefUnbinder on GameObject {0} (SmartRef type {1})",
+										ownerName.GetValue(sr), sr.GetType().Name	
+									);
+								} else {
+									SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(sr, ownerGo, true);
+								}
 							}
 						}
 					}

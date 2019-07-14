@@ -33,16 +33,24 @@ namespace SmartData.SmartFloat {
 	[System.Serializable]
 	public class FloatSetReader : SmartSetRefBase<float, FloatSet>, ISmartSetRefReader<float> {
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onAdd;
+		Data.FloatVar.FloatEvent _onAdd = null;
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onRemove;
+		Data.FloatVar.FloatEvent _onRemove = null;
+		[SerializeField]
+		Data.FloatVar.FloatEvent _onChange = null;
 		
-		protected override System.Action<float, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
+		protected override System.Action<SetEventData<float>> GetUnityEventInvoke(){
+			return (d)=>{
+				switch (d.operation){
+					case SetOperation.ADDED:
+						_onAdd.Invoke(d.value);
+						break;
+					case SetOperation.REMOVED:
+						_onRemove.Invoke(d.value);
+						break;
+					case SetOperation.CHANGED:
+						_onChange.Invoke(d.value);
+						break;
 				}
 			};
 		}
@@ -55,25 +63,27 @@ namespace SmartData.SmartFloat {
 	[System.Serializable]
 	public class FloatSetWriter : SmartSetRefWriterBase<float, FloatSet>, ISmartSetRefReader<float> {
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onAdd;
+		Data.FloatVar.FloatEvent _onAdd = null;
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onRemove;
+		Data.FloatVar.FloatEvent _onRemove = null;
+		[SerializeField]
+		Data.FloatVar.FloatEvent _onChange = null;
 		
-		protected override System.Action<float, bool> GetUnityEventInvoke(){
-			return (e,a)=>{
-				if (a){
-					_onAdd.Invoke(e);
-				} else {
-					_onRemove.Invoke(e);
-				}
-			};
+		protected override System.Action<SetEventData<float>> GetUnityEventInvoke(){
+			return InvokeUnityEvent;
 		}
 		
-		protected sealed override void InvokeUnityEvent(float value, bool added){
-			if (added){
-				_onAdd.Invoke(value);
-			} else {
-				_onRemove.Invoke(value);
+		protected sealed override void InvokeUnityEvent(SetEventData<float> d){
+			switch (d.operation){
+				case SetOperation.ADDED:
+					_onAdd.Invoke(d.value);
+					break;
+				case SetOperation.REMOVED:
+					_onRemove.Invoke(d.value);
+					break;
+				case SetOperation.CHANGED:
+					_onChange.Invoke(d.value);
+					break;
 			}
 		}
 		

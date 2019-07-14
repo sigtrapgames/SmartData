@@ -8,9 +8,9 @@ namespace SmartData.SmartFloat.Decorators {
 	[DecoratorDescription("Clamps a FloatVariable when its value is set.")]
 	public class SmartFloatRangeDecorator : SmartDataDecoratorBase<float> {
 		[SerializeField]
-		float _min;
+		float _min = 0;
 		[SerializeField]
-		float _max;
+		float _max = 0;
 
 		/// <summary>
 		/// SmartFloat value cannot be lower than this.
@@ -28,7 +28,7 @@ namespace SmartData.SmartFloat.Decorators {
 		public IRelayLink<SmartFloatRangeDecorator, float, float> onRangeClamped {get {return _onRangeClamped;}}
 		Relay<SmartFloatRangeDecorator, float, float> _onRangeClamped = new Relay<SmartFloatRangeDecorator, float, float>();
 
-		public override float OnUpdated(float oldValue, float newValue, bool isResettingToDefault){
+		public override float OnUpdated(float oldValue, float newValue, RestoreMode restoreMode, ref BlockFlags block){
 			float result = Mathf.Clamp(newValue, _min, _max);
 			if (result != newValue){
 				_onRangeClamped.Dispatch(this, result, newValue);

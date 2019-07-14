@@ -36,7 +36,7 @@ namespace SmartData.SmartInt {
 	[System.Serializable]
 	public class IntReader : SmartDataRefBase<int, IntVar, IntConst, IntMulti> {
 		[SerializeField]
-		Data.IntVar.IntEvent _onUpdate;
+		Data.IntVar.IntEvent _onUpdate = null;
 		
 		protected sealed override System.Action<int> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -50,7 +50,7 @@ namespace SmartData.SmartInt {
 	[System.Serializable]
 	public class IntWriter : SmartDataRefWriter<int, IntVar, IntConst, IntMulti> {
 		[SerializeField]
-		Data.IntVar.IntEvent _onUpdate;
+		Data.IntVar.IntEvent _onUpdate = null;
 		
 		protected sealed override System.Action<int> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

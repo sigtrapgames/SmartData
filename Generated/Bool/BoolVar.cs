@@ -36,7 +36,7 @@ namespace SmartData.SmartBool {
 	[System.Serializable]
 	public class BoolReader : SmartDataRefBase<bool, BoolVar, BoolConst, BoolMulti> {
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onUpdate;
+		Data.BoolVar.BoolEvent _onUpdate = null;
 		
 		protected sealed override System.Action<bool> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -50,7 +50,7 @@ namespace SmartData.SmartBool {
 	[System.Serializable]
 	public class BoolWriter : SmartDataRefWriter<bool, BoolVar, BoolConst, BoolMulti> {
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onUpdate;
+		Data.BoolVar.BoolEvent _onUpdate = null;
 		
 		protected sealed override System.Action<bool> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
