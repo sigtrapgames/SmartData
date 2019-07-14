@@ -33,11 +33,11 @@ namespace SmartData.SmartInt {
 	[System.Serializable]
 	public class IntSetReader : SmartSetRefBase<int, IntSet>, ISmartSetRefReader<int> {
 		[SerializeField]
-		Data.IntVar.IntEvent _onAdd;
+		Data.IntVar.IntEvent _onAdd = null;
 		[SerializeField]
-		Data.IntVar.IntEvent _onRemove;
+		Data.IntVar.IntEvent _onRemove = null;
 		[SerializeField]
-		Data.IntVar.IntEvent _onChange;
+		Data.IntVar.IntEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<int>> GetUnityEventInvoke(){
 			return (d)=>{
@@ -63,11 +63,11 @@ namespace SmartData.SmartInt {
 	[System.Serializable]
 	public class IntSetWriter : SmartSetRefWriterBase<int, IntSet>, ISmartSetRefReader<int> {
 		[SerializeField]
-		Data.IntVar.IntEvent _onAdd;
+		Data.IntVar.IntEvent _onAdd = null;
 		[SerializeField]
-		Data.IntVar.IntEvent _onRemove;
+		Data.IntVar.IntEvent _onRemove = null;
 		[SerializeField]
-		Data.IntVar.IntEvent _onChange;
+		Data.IntVar.IntEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<int>> GetUnityEventInvoke(){
 			return InvokeUnityEvent;

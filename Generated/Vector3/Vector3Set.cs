@@ -33,11 +33,11 @@ namespace SmartData.SmartVector3 {
 	[System.Serializable]
 	public class Vector3SetReader : SmartSetRefBase<Vector3, Vector3Set>, ISmartSetRefReader<Vector3> {
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onAdd;
+		Data.Vector3Var.Vector3Event _onAdd = null;
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onRemove;
+		Data.Vector3Var.Vector3Event _onRemove = null;
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onChange;
+		Data.Vector3Var.Vector3Event _onChange = null;
 		
 		protected override System.Action<SetEventData<Vector3>> GetUnityEventInvoke(){
 			return (d)=>{
@@ -63,11 +63,11 @@ namespace SmartData.SmartVector3 {
 	[System.Serializable]
 	public class Vector3SetWriter : SmartSetRefWriterBase<Vector3, Vector3Set>, ISmartSetRefReader<Vector3> {
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onAdd;
+		Data.Vector3Var.Vector3Event _onAdd = null;
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onRemove;
+		Data.Vector3Var.Vector3Event _onRemove = null;
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onChange;
+		Data.Vector3Var.Vector3Event _onChange = null;
 		
 		protected override System.Action<SetEventData<Vector3>> GetUnityEventInvoke(){
 			return InvokeUnityEvent;

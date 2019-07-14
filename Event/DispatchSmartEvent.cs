@@ -10,7 +10,7 @@ namespace SmartData.SmartEvent.Components {
 	[AddComponentMenu("SmartData/Dispatch Smart Event", 101)]
 	public class DispatchSmartEvent : MonoBehaviour {
 		[SerializeField][ForceNoAutoListen(hide=true)][ForceHideEvent]
-		EventDispatcher _event;
+		EventDispatcher _event = null;
 
 		/// <summary>Dispatch the SmartEvent.</summary>
 		public void Dispatch(){

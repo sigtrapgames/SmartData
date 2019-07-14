@@ -350,7 +350,7 @@ namespace SmartData.Abstract {
 	/// </summary>
 	public abstract class SmartConst<TData> : SmartBase {
 		[SerializeField]
-		TData _value;
+		TData _value = default(TData);
 		public TData value {get {return _value;}}
 	}
 #endregion Const
@@ -651,8 +651,8 @@ namespace SmartData.Abstract {
 		where TSmart:SmartDecorableBase
 	{
 		[SerializeField]
-		TSmart[] _persistent;
-		protected List<TSmart> _runtimeList;
+		TSmart[] _persistent = null;
+		protected List<TSmart> _runtimeList = null;
 
 		public override int count {get {return _runtimeList != null ? _runtimeList.Count : 0;}}
 
@@ -813,18 +813,18 @@ namespace SmartData.Abstract {
 			return new MultiEnumerator<TData, SmartMulti<TData, TSmart>, TSmart>(this);
 		}
 
-		public class MultiEnumerator<TData, TMulti, TSmart> : IEnumerator<TData> 
-			where TMulti : SmartMulti<TData, TSmart>
-			where TSmart : SmartVar<TData>
+		public class MultiEnumerator<TEData, TEMulti, TESmart> : IEnumerator<TEData> 
+			where TEMulti : SmartMulti<TEData, TESmart>
+			where TESmart : SmartVar<TEData>
 		{
-			TMulti _multi;
+			TEMulti _multi;
 			int _index;
 
-			public MultiEnumerator(TMulti m){
+			public MultiEnumerator(TEMulti m){
 				_multi = m;
 			}
 
-			TData IEnumerator<TData>.Current {
+			TEData IEnumerator<TEData>.Current {
 				get {
 					return _multi.GetValue(_index);
 				}
@@ -849,22 +849,23 @@ namespace SmartData.Abstract {
 #region Sets
 	/// <summary>
 	/// Abstract base for SmartSets. Do not reference.
-	/// <para />IEnumerable is not implemented to avoid unexpected lack of callbacks.
 	/// </summary>
 	public abstract class SmartSet<TData> : SmartDecorableBase, IEnumerable<TData> {
 		[SerializeField]
 		protected bool _resetOnSceneChange = false;
 		
+	#pragma warning disable 0414
 		/// <summary>
 		/// Only used by editor to add elements from inspector.
 		/// Can't be #if'd as would create mismatch with serialized data in build.
 		/// </summary>
 		[SerializeField]
-		TData _toAdd;
+		TData _toAdd = default(TData);
+	#pragma warning restore 0414
 
 		[SerializeField]
-		List<TData> _set;
-		protected List<TData> _runtimeSet;
+		List<TData> _set = null;
+		protected List<TData> _runtimeSet = null;
 		
 		/// <summary>
 		/// Link to underlying event. Gives access to additional functionality.

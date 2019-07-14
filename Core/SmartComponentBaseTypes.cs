@@ -54,14 +54,15 @@ namespace SmartData.Abstract {
 			}
 		}
 	}
+	
 	public abstract class WriteSmartBase<TData, TRef> : SmartComponentBase
 		where TRef : ISmartRefWriter<TData>
 	{
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)][ForceHideEvent]
-		protected TRef _data;
+		protected TRef _data = default(TRef);
 
 		[SerializeField, Tooltip("Value to set when Set() is called")]
-		TData _valueToSet;
+		TData _valueToSet = default(TData);
 
 		protected override bool bindEvents {get {return false;}}
 

@@ -36,7 +36,7 @@ namespace SmartData.SmartFloat {
 	[System.Serializable]
 	public class FloatReader : SmartDataRefBase<float, FloatVar, FloatConst, FloatMulti> {
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onUpdate;
+		Data.FloatVar.FloatEvent _onUpdate = null;
 		
 		protected sealed override System.Action<float> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -50,7 +50,7 @@ namespace SmartData.SmartFloat {
 	[System.Serializable]
 	public class FloatWriter : SmartDataRefWriter<float, FloatVar, FloatConst, FloatMulti> {
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onUpdate;
+		Data.FloatVar.FloatEvent _onUpdate = null;
 		
 		protected sealed override System.Action<float> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

@@ -56,14 +56,14 @@ namespace SmartData.SmartEvent {
 		#endif
 
 		[SerializeField]
-		protected EventVar _smartEvent;
+		protected EventVar _smartEvent = null;
 		[SerializeField]
-		protected EventMulti _smartMulti;
+		protected EventMulti _smartMulti = null;
 		[SerializeField]
 		protected bool _useMulti = false;
 
 		[SerializeField]
-		UnityEvent _onEvent;
+		UnityEvent _onEvent = null;
 
 		public override bool isValid {get {return _event != null;}}
 		public override string name {get {return _useMulti ? _smartMulti.name : _smartEvent.name;}}

@@ -10,9 +10,9 @@ namespace SmartData.Abstract {
 	/// </summary>
 	public abstract class SmartNetworkDataDecoratorBase<TData> : SmartDataDecoratorBase<TData> {
 		[SerializeField, Tooltip("Only dispatch event across network, not locally.")]
-		bool _networkOnlyDispatch;
+		bool _networkOnlyDispatch = false;
 		[SerializeField, Tooltip("Only update value across network, not locally.")]
-		bool _networkOnlyValue;
+		bool _networkOnlyValue = false;
 		public override TData OnUpdated(TData oldValue, TData newValue, RestoreMode restoreMode, ref BlockFlags block){
 			Send(newValue);
 			// Stop event from being dispatched locally

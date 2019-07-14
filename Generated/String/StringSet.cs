@@ -33,11 +33,11 @@ namespace SmartData.SmartString {
 	[System.Serializable]
 	public class StringSetReader : SmartSetRefBase<string, StringSet>, ISmartSetRefReader<string> {
 		[SerializeField]
-		Data.StringVar.StringEvent _onAdd;
+		Data.StringVar.StringEvent _onAdd = null;
 		[SerializeField]
-		Data.StringVar.StringEvent _onRemove;
+		Data.StringVar.StringEvent _onRemove = null;
 		[SerializeField]
-		Data.StringVar.StringEvent _onChange;
+		Data.StringVar.StringEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<string>> GetUnityEventInvoke(){
 			return (d)=>{
@@ -63,11 +63,11 @@ namespace SmartData.SmartString {
 	[System.Serializable]
 	public class StringSetWriter : SmartSetRefWriterBase<string, StringSet>, ISmartSetRefReader<string> {
 		[SerializeField]
-		Data.StringVar.StringEvent _onAdd;
+		Data.StringVar.StringEvent _onAdd = null;
 		[SerializeField]
-		Data.StringVar.StringEvent _onRemove;
+		Data.StringVar.StringEvent _onRemove = null;
 		[SerializeField]
-		Data.StringVar.StringEvent _onChange;
+		Data.StringVar.StringEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<string>> GetUnityEventInvoke(){
 			return InvokeUnityEvent;

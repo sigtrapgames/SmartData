@@ -6,15 +6,15 @@ namespace SmartData.SmartEvent.Components {
 	[AddComponentMenu("SmartData/Smart Event On Lifecycle", 103)]
 	public class SmartEventOnLifecycle : MonoBehaviour {
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)]
-		EventDispatcher _onAwake;
+		EventDispatcher _onAwake = null;
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)]
-		EventDispatcher _onStart;
+		EventDispatcher _onStart = null;
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)]
-		EventDispatcher _onEnable;
+		EventDispatcher _onEnable = null;
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)]
-		EventDispatcher _onDisable;
+		EventDispatcher _onDisable = null;
 		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)]
-		EventDispatcher _onDestroy;
+		EventDispatcher _onDestroy = null;
 		
 		void Awake(){
 			SetReceive(true, _onAwake, _onStart, _onEnable, _onDisable, _onDestroy);

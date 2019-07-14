@@ -33,11 +33,11 @@ namespace SmartData.SmartBool {
 	[System.Serializable]
 	public class BoolSetReader : SmartSetRefBase<bool, BoolSet>, ISmartSetRefReader<bool> {
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onAdd;
+		Data.BoolVar.BoolEvent _onAdd = null;
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onRemove;
+		Data.BoolVar.BoolEvent _onRemove = null;
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onChange;
+		Data.BoolVar.BoolEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<bool>> GetUnityEventInvoke(){
 			return (d)=>{
@@ -63,11 +63,11 @@ namespace SmartData.SmartBool {
 	[System.Serializable]
 	public class BoolSetWriter : SmartSetRefWriterBase<bool, BoolSet>, ISmartSetRefReader<bool> {
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onAdd;
+		Data.BoolVar.BoolEvent _onAdd = null;
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onRemove;
+		Data.BoolVar.BoolEvent _onRemove = null;
 		[SerializeField]
-		Data.BoolVar.BoolEvent _onChange;
+		Data.BoolVar.BoolEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<bool>> GetUnityEventInvoke(){
 			return InvokeUnityEvent;

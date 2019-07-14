@@ -42,7 +42,7 @@ namespace SmartData.SmartEvent {
 		#endif
 
 		[SerializeField]
-		UnityEvent _onEvent;
+		UnityEvent _onEvent = null;
 
 		protected override IRelayBinding BindUnityEvent(){
 			return _event.relay.BindListener(_onEvent.Invoke);

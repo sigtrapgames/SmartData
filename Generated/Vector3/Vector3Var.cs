@@ -36,7 +36,7 @@ namespace SmartData.SmartVector3 {
 	[System.Serializable]
 	public class Vector3Reader : SmartDataRefBase<Vector3, Vector3Var, Vector3Const, Vector3Multi> {
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onUpdate;
+		Data.Vector3Var.Vector3Event _onUpdate = null;
 		
 		protected sealed override System.Action<Vector3> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -50,7 +50,7 @@ namespace SmartData.SmartVector3 {
 	[System.Serializable]
 	public class Vector3Writer : SmartDataRefWriter<Vector3, Vector3Var, Vector3Const, Vector3Multi> {
 		[SerializeField]
-		Data.Vector3Var.Vector3Event _onUpdate;
+		Data.Vector3Var.Vector3Event _onUpdate = null;
 		
 		protected sealed override System.Action<Vector3> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

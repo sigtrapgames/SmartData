@@ -33,11 +33,11 @@ namespace SmartData.SmartFloat {
 	[System.Serializable]
 	public class FloatSetReader : SmartSetRefBase<float, FloatSet>, ISmartSetRefReader<float> {
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onAdd;
+		Data.FloatVar.FloatEvent _onAdd = null;
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onRemove;
+		Data.FloatVar.FloatEvent _onRemove = null;
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onChange;
+		Data.FloatVar.FloatEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<float>> GetUnityEventInvoke(){
 			return (d)=>{
@@ -63,11 +63,11 @@ namespace SmartData.SmartFloat {
 	[System.Serializable]
 	public class FloatSetWriter : SmartSetRefWriterBase<float, FloatSet>, ISmartSetRefReader<float> {
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onAdd;
+		Data.FloatVar.FloatEvent _onAdd = null;
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onRemove;
+		Data.FloatVar.FloatEvent _onRemove = null;
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onChange;
+		Data.FloatVar.FloatEvent _onChange = null;
 		
 		protected override System.Action<SetEventData<float>> GetUnityEventInvoke(){
 			return InvokeUnityEvent;

@@ -35,7 +35,7 @@ namespace SmartData.SmartFloat {
 		}
 		
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onUpdate;
+		Data.FloatVar.FloatEvent _onUpdate = null;
 		
 		protected override System.Action<float> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;
@@ -53,7 +53,7 @@ namespace SmartData.SmartFloat {
 		}
 		
 		[SerializeField]
-		Data.FloatVar.FloatEvent _onUpdate;
+		Data.FloatVar.FloatEvent _onUpdate = null;
 		
 		protected override System.Action<float> GetUnityEventInvoke(){
 			return _onUpdate.Invoke;

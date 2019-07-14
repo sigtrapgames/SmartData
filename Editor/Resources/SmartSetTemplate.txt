@@ -29,11 +29,11 @@ namespace SmartData.Smart{1} {{
 	[System.Serializable]
 	public class {1}SetReader : SmartSetRefBase<{0}, {1}Set>, ISmartSetRefReader<{0}> {{
 		[SerializeField]
-		Data.{1}Var.{1}Event _onAdd;
+		Data.{1}Var.{1}Event _onAdd = null;
 		[SerializeField]
-		Data.{1}Var.{1}Event _onRemove;
+		Data.{1}Var.{1}Event _onRemove = null;
 		[SerializeField]
-		Data.{1}Var.{1}Event _onChange;
+		Data.{1}Var.{1}Event _onChange = null;
 		
 		protected override System.Action<SetEventData<{0}>> GetUnityEventInvoke(){{
 			return (d)=>{{
@@ -59,11 +59,11 @@ namespace SmartData.Smart{1} {{
 	[System.Serializable]
 	public class {1}SetWriter : SmartSetRefWriterBase<{0}, {1}Set>, ISmartSetRefReader<{0}> {{
 		[SerializeField]
-		Data.{1}Var.{1}Event _onAdd;
+		Data.{1}Var.{1}Event _onAdd = null;
 		[SerializeField]
-		Data.{1}Var.{1}Event _onRemove;
+		Data.{1}Var.{1}Event _onRemove = null;
 		[SerializeField]
-		Data.{1}Var.{1}Event _onChange;
+		Data.{1}Var.{1}Event _onChange = null;
 		
 		protected override System.Action<SetEventData<{0}>> GetUnityEventInvoke(){{
 			return InvokeUnityEvent;

@@ -8,9 +8,9 @@ namespace SmartData.SmartFloat.Decorators {
 	[DecoratorDescription("Clamps a FloatVariable when its value is set.")]
 	public class SmartFloatRangeDecorator : SmartDataDecoratorBase<float> {
 		[SerializeField]
-		float _min;
+		float _min = 0;
 		[SerializeField]
-		float _max;
+		float _max = 0;
 
 		/// <summary>
 		/// SmartFloat value cannot be lower than this.

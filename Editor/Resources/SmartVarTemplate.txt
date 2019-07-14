@@ -32,7 +32,7 @@ namespace SmartData.Smart{1} {{
 	[System.Serializable]
 	public class {1}Reader : SmartDataRefBase<{0}, {1}Var, {1}Const, {1}Multi> {{
 		[SerializeField]
-		Data.{1}Var.{1}Event _onUpdate;
+		Data.{1}Var.{1}Event _onUpdate = null;
 		
 		protected sealed override System.Action<{0}> GetUnityEventInvoke(){{
 			return _onUpdate.Invoke;
@@ -46,7 +46,7 @@ namespace SmartData.Smart{1} {{
 	[System.Serializable]
 	public class {1}Writer : SmartDataRefWriter<{0}, {1}Var, {1}Const, {1}Multi> {{
 		[SerializeField]
-		Data.{1}Var.{1}Event _onUpdate;
+		Data.{1}Var.{1}Event _onUpdate = null;
 		
 		protected sealed override System.Action<{0}> GetUnityEventInvoke(){{
 			return _onUpdate.Invoke;

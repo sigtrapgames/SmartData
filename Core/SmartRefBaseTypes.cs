@@ -49,12 +49,14 @@ namespace SmartData.Abstract {
 		}
 		/// <summary>Used in editor for automatic binding/unbinding of UnityEvent</summary>
 		[SerializeField][HideInInspector]
-		Object _owner;
+		Object _owner = null;
 		/// <summary>Used for debugging if SmartRefUnbinder mapping fails using _owner</summary>
 		[SerializeField][HideInInspector]
-		string _ownerName;
+		string _ownerName = null;
+	#pragma warning disable 0414
 		[SerializeField][HideInInspector]
-		string _propertyPath;
+		string _propertyPath = null;
+	#pragma warning restore 0414
 		/// <summary>
 		/// If true, SmartRef will automatically bind the UnityEvent to the SmartObject's dispatch event, and unbind at end-of-life.
 		/// <para />Negates need for setting unityEventEnabled manually at beginning and end-of-life.
@@ -132,7 +134,7 @@ namespace SmartData.Abstract {
 	/// </summary>
 	public abstract class SmartRefMultiableBase : SmartRefBase {
 		[SerializeField]
-		protected int _multiIndex;
+		protected int _multiIndex = 0;
 	}
 	/// <summary>
 	/// Non-generic abstract base for SmartDataRefs, for Editor purposes. Do not reference.
@@ -222,14 +224,14 @@ namespace SmartData.Abstract {
 		#endif
 
 		[SerializeField]
-		protected TData _value;
-		protected TData _defaultValue;
+		protected TData _value = default(TData);
+		protected TData _defaultValue = default(TData);
 		[SerializeField]
-		TConst _smartConst;
+		TConst _smartConst = null;
 		[SerializeField]
-		TVar _smartVar;
+		TVar _smartVar = null;
 		[SerializeField]
-		TMulti _smartMulti;
+		TMulti _smartMulti = null;
 
 		public TData value {
 			get {
@@ -515,7 +517,7 @@ namespace SmartData.Abstract {
 		where TVar:SmartDecorableBase
 	{
 		[SerializeField]
-		TMulti _smartMulti;
+		TMulti _smartMulti = null;
 
 		public override bool isValid {get {return _smartMulti != null;}}
 		/// <summary>Returns the name of the referenced SmartMulti (not the underlying SmartVar element)</summary>
@@ -709,11 +711,11 @@ namespace SmartData.Abstract {
 		[SerializeField]
 		protected bool _useList = false;
 		[SerializeField]
-		protected TWrite _smartSet;
+		protected TWrite _smartSet = null;
 		[SerializeField]
 		List<TData> _list = new List<TData>();
 		[SerializeField]
-		protected List<TData> _runtimeList;
+		protected List<TData> _runtimeList = null;
 
 		protected bool _isEventable {get {return !_useList;}}
 		public override bool isValid {get {return (_useList ? true : _smartSet != null);}}
