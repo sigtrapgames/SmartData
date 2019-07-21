@@ -122,12 +122,17 @@ namespace SmartData.Abstract {
 		/// Note: adds a MonoBehaviour to the gameobject when first called.
 		/// Called automatically if Auto Bind checked in editor.
 		/// </summary>
-		public void UnbindOnDestroy(bool enableUnityEventNow=true){
+		public void UnbindUnityEventOnDestroy(bool enableUnityEventNow=true){
 			// Might be destroyed before getting bound
-			if (_owner && _owner is Component){
-				var go = (_owner as Component).gameObject;
+			if (_owner){
+				GameObject go = null;
+				if (_owner is Component){
+					go = (_owner as Component).gameObject;
+				} else {
+					go = (_owner as GameObject);
+				}
 				if (go){
-					SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(this, go, enableUnityEventNow);
+					SmartData.Components.SmartRefUnbinder.UnbindUnityEventOnDestroy(this, go, enableUnityEventNow);
 				}
 			}
 		}
@@ -414,12 +419,12 @@ namespace SmartData.Abstract {
 				switch (_refType){
 					case RefType.VAR:
 						if (_smartVar != null){
-							_smartVar.RequestCtorAutoBinding(this);
+							_smartVar.RequestCtorAutoUnityEventBinding(this);
 						}
 						break;
 					case RefType.MULTI:
 						if (_smartMulti != null){
-							_smartMulti.RequestCtorAutoBinding(this, _multiIndex);
+							_smartMulti.RequestCtorAutoUnityEventBinding(this, _multiIndex);
 						}
 						break;
 				}
@@ -751,7 +756,7 @@ namespace SmartData.Abstract {
 			}
 
 			if (_autoListen && _useList && _smartSet != null){
-				_smartSet.RequestCtorAutoBinding(this);
+				_smartSet.RequestCtorAutoUnityEventBinding(this);
 			}
 		}
 		protected void Restore(){

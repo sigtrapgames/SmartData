@@ -95,10 +95,10 @@ namespace SmartData.SmartEvent {
 			if (_autoListen){
 				if (_useMulti){
 					if (_smartMulti != null){
-						_smartMulti.RequestCtorAutoBinding(this, _multiIndex);
+						_smartMulti.RequestCtorAutoUnityEventBinding(this, _multiIndex);
 					}
 				} else if (_smartEvent != null){
-					_smartEvent.RequestCtorAutoBinding(this);
+					_smartEvent.RequestCtorAutoUnityEventBinding(this);
 				}
 			}
 		}

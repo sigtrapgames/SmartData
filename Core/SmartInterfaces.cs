@@ -59,17 +59,17 @@ namespace SmartData.Interfaces {
 	}
 	/// <summary>
 	/// <para />A SmartData which can auto-bind SmartRefs to its event
-	/// <para />* RequestCtorAutoBinding(ISmartRef)
+	/// <para />* RequestCtorAutoUnityEventBinding(ISmartRef)
 	/// </summary>
 	public interface ISmartAutoBinder : ISmartObject {
-		void RequestCtorAutoBinding(ISmartRef r);
+		void RequestCtorAutoUnityEventBinding(ISmartRef r);
 	}
 	/// <summary>
 	/// <para />A SmartMulti which can auto-bind SmartRefs to the events of its elements
-	/// <para />* RequestCtorAutoBinding(ISmartRef, index)
+	/// <para />* RequestCtorAutoUnityEventBinding(ISmartRef, index)
 	/// </summary>
 	public interface ISmartMultiAutoBinder : ISmartObject {
-		void RequestCtorAutoBinding(ISmartRef r, int index);
+		void RequestCtorAutoUnityEventBinding(ISmartRef r, int index);
 	}
 	/// <summary>
 	/// <para />A typed SmartSet whose elements can be read.
@@ -110,12 +110,12 @@ namespace SmartData.Interfaces {
 	/// <para />A SmartRef with a built-in UnityEvent.
 	/// <para />* isValid get;
 	/// <para />* unityEventOnReceive get; set;
-	/// <para />* UnbindOnDestroy()
+	/// <para />* UnbindUnityEventOnDestroy()
 	/// </summary>
 	public interface ISmartRef {
 		bool isValid {get;}
 		bool unityEventOnReceive {get; set;}
-		void UnbindOnDestroy(bool enableUnityEventNow=true);
+		void UnbindUnityEventOnDestroy(bool enableUnityEventNow=true);
 	}
 	/// <summary>
 	/// <para />A SmartMulti whose Smart objects can be accessed by index.
