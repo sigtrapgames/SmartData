@@ -9,10 +9,6 @@ namespace SmartData.Editors {
 	[CustomPropertyDrawer(typeof(SmartDataRefBase), true)]
 	public class SmartDataRefPropertyDrawer : SmartRefPropertyDrawerBase {
 		static readonly System.Type _bt = typeof(SmartDataRefBase);
-		static readonly SmartDataRefBase.RefType[] RTS_EVENTABLE = 
-			(SmartDataRefBase.RefType[])_bt.GetField("TYPES_WRITABLE", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-		static readonly string[] RT_NAMES_EVENTABLE = 
-			(string[])_bt.GetField("TYPENAMES_WRITABLE", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
 
 		/*static readonly GUIContent[] _refTypeLabels = new GUIContent[10];
 		static readonly Dictionary<SmartRefBase.RefType, string> _tooltips = new Dictionary<SmartRefBase.RefType, string>{
@@ -29,39 +25,41 @@ namespace SmartData.Editors {
 		};
 		
 		protected override void DrawGUI(Rect position, SerializedProperty property, GUIContent label, Vector2 min, Vector2 max){
-			Rect fieldPos = DrawLabel(position, property, label);
-
-			var rtProp = property.FindPropertyRelative("_refType");
-			var rt = (SmartDataRefBase.RefType)rtProp.intValue;
-			bool forceExpand;
-			bool forceEventable = IsForceEventable(property, fieldInfo, out forceExpand);
+			var refTypeProp = property.FindPropertyRelative("_refType");
+			var refType = (SmartDataRefBase.RefType)refTypeProp.intValue;
+			_isEventable = refType != SmartDataRefBase.RefType.CONST;
+			bool forceExpand, allowLocal;
+			bool forceEventable = IsForceEventable(property, fieldInfo, out forceExpand, out allowLocal);
+			bool eventable = _isEventable || forceEventable;
+			if (eventable){
+				eventable &= !IsForceHideEvent(property, fieldInfo);
+			}
 
 			// Current type
-			SmartDataRefBase.RefType[] rts = null;
-			string[] rtNames = null;
+			SmartDataRefBase.RefType[] refTypes = null;
+			string[] refTypeNames = null;
 
-			if (forceEventable){
-				rts = RTS_EVENTABLE;
-				rtNames = RT_NAMES_EVENTABLE;
-			} else {
-				rts = (SmartDataRefBase.RefType[])fieldInfo.FieldType.GetMethodPrivate(
-					"_EDITOR_GetUsableRefTypes",
-					BindingFlags.Static | BindingFlags.NonPublic
-				).Invoke(null, null);
-				rtNames = (string[])fieldInfo.FieldType.GetMethodPrivate(
-					"_EDITOR_GetUsableRefNames",
-					BindingFlags.Static | BindingFlags.NonPublic
-				).Invoke(null, null);
-			}
-			bool rtValid = false;
-			for (int i=0; i<rts.Length; ++i){
-				if (rtProp.intValue == (int)rts[i]){
-					rtValid = true;
+			object[] parms = new object[]{forceEventable, allowLocal};
+			var ft = fieldInfo.FieldType.IsArray ? fieldInfo.FieldType.GetElementType() : fieldInfo.FieldType;
+			
+			refTypes = (SmartDataRefBase.RefType[])ft.GetMethodPrivate(
+				"_EDITOR_GetUsableRefTypes",
+				BindingFlags.Static | BindingFlags.NonPublic
+			).Invoke(null, parms);
+			refTypeNames = (string[])ft.GetMethodPrivate(
+				"_EDITOR_GetUsableRefNames",
+				BindingFlags.Static | BindingFlags.NonPublic
+			).Invoke(null, parms);
+
+			bool refTypeValid = false;
+			for (int i=0; i<refTypes.Length; ++i){
+				if (refTypeProp.intValue == (int)refTypes[i]){
+					refTypeValid = true;
 					break;
 				}
 			}
-			if (!rtValid){
-				rtProp.intValue = (int)rts[0];
+			if (!refTypeValid){
+				refTypeProp.intValue = (int)refTypes[0];
 				property.serializedObject.ApplyModifiedPropertiesWithoutUndo();
 			}
 			/*for (int i=0; i<rtNames.Length; ++i){
@@ -69,18 +67,20 @@ namespace SmartData.Editors {
 					rtNames[i], _tooltips[rts[i]] + "\nClick to change."
 				);
 			}*/
-
-			int currentIndex = -1;
-			for (int i=0; i<rts.Length; ++i){
-				if (rt == rts[i]){
-					currentIndex = i;
+			int currentRefTypeIndex = -1;
+			for (int i=0; i<refTypes.Length; ++i){
+				if (refType == refTypes[i]){
+					currentRefTypeIndex = i;
 					break;
 				}
 			}
 
+			
+			Rect fieldPos = DrawLabel(position, property, label, eventable, forceExpand);
+
 			// Prep rects
-			Rect popPos, rwPos;
-			GetSmartFieldRects(property, label, max, ref fieldPos, out rwPos, out popPos, true, true);
+			Rect popupPos, readWritePos;
+			GetSmartFieldRects(property, label, max, ref fieldPos, out readWritePos, out popupPos, true, true);
 			
 			Rect evtPos = position;
 			evtPos.yMin = fieldPos.min.y;
@@ -88,38 +88,32 @@ namespace SmartData.Editors {
 
 			// Select type
 			GUI.enabled = !Application.isPlaying;
-			int newIndex = EditorGUI.Popup(popPos, currentIndex, rtNames/*_refTypeLabels*/);
-			if (newIndex != currentIndex){
-				rtProp.intValue = (int)rts[newIndex];
+			int newIndex = EditorGUI.Popup(popupPos, currentRefTypeIndex, refTypeNames/*_refTypeLabels*/);
+			if (newIndex != currentRefTypeIndex){
+				refTypeProp.intValue = (int)refTypes[newIndex];
+				property.serializedObject.ApplyModifiedProperties();
 			}
 			GUI.enabled = true;
 
 			// RW indicator
-			DrawReadWriteLabel(rwPos, property, fieldInfo);
+			DrawReadWriteLabel(readWritePos, property, fieldInfo);
 
 			// Smart ref or value field
-			if (rt == SmartDataRefBase.RefType.MULTI){
+			if (refType == SmartDataRefBase.RefType.MULTI){
 				DrawMultiProperty(fieldPos, property, min, max);					
 			} else {
 				DrawSmart(
-					fieldPos, property.FindPropertyRelative(refPropNames[rt]), property, 
-					min, max, rt != SmartDataRefBase.RefType.LOCAL, rt
+					fieldPos, property.FindPropertyRelative(refPropNames[refType]), property, 
+					min, max, refType != SmartDataRefBase.RefType.LOCAL, refType
 				);
 			}
 
 			// Draw event if type supports it
-			_isEventable = false;
-			for (int i=0; i<RTS_EVENTABLE.Length; ++i){
-				if (RTS_EVENTABLE[i] == rt){
-					_isEventable = true;
-					break;
-				}
-			}
 			if (_isEventable){
-				if (IsForceHideEvent(property, fieldInfo)) return;
+				if (!eventable) return;
 				DrawEvent(property, evtPos, min, max, forceExpand);
 			} else if (forceEventable){
-				rtProp.intValue = (int)SmartDataRefBase.RefType.VAR;
+				refTypeProp.intValue = (int)SmartDataRefBase.RefType.VAR;
 			}
 		}
 	}

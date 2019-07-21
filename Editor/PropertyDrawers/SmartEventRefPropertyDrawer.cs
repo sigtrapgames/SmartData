@@ -11,7 +11,13 @@ namespace SmartData.Editors {
 		GUIContent _eventBtn = new GUIContent("E", "Using SmartEvent");
 		protected override bool _isEventable {get {return true;}}
 		protected override void DrawGUI(Rect position, SerializedProperty property, GUIContent label, Vector2 min, Vector2 max){
-			Rect fieldPos = DrawLabel(position, property, label);
+			bool forceHide = IsForceHideEvent(property, fieldInfo);
+			bool forceShow = false;
+			if (!forceHide){
+				bool allowLocal;
+				IsForceEventable(property, fieldInfo, out forceShow, out allowLocal);
+			}
+			Rect fieldPos = DrawLabel(position, property, label, !forceHide, forceShow);
 
 			var useMultiProp = property.FindPropertyRelative("_useMulti");
 			bool useMulti = (bool)useMultiProp.boolValue;
@@ -23,6 +29,7 @@ namespace SmartData.Editors {
 			if (GUI.Button(btnRect, (useMulti ? _multiBtn : _eventBtn))){
 				useMulti = !useMulti;
 				useMultiProp.boolValue = useMulti;
+				property.serializedObject.ApplyModifiedProperties();
 			}
 			GUI.enabled = true;
 
@@ -34,10 +41,8 @@ namespace SmartData.Editors {
 				DrawSmart(fieldPos, property.FindPropertyRelative("_smartEvent"), property, min, max, true);
 			}
 
-			if (IsForceHideEvent(property, fieldInfo)) return;
-			bool forceExpand;
-			IsForceEventable(property, fieldInfo, out forceExpand);
-			DrawEvent(property, fieldPos, min, max, forceExpand);
+			if (forceHide) return;
+			DrawEvent(property, fieldPos, min, max, forceShow);
 		}
 	}
 }

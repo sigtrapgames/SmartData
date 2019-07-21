@@ -584,7 +584,7 @@ namespace SmartData.Editors.Testing {
 			setter(10f);
 			Assert.That(_f == 10f);
 		}
-		void TestListenerBinding(System.Action raiser){
+		void TestListenerBinding(System.Func<SFA.BlockFlags> raiser){
 			raiser();
 			Assert.That(_raised == 1);
 			_b.Enable(false);

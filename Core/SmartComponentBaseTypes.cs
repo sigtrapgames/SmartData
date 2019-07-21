@@ -34,7 +34,7 @@ namespace SmartData.Abstract {
 		where TRef : ISmartRef
 	{
 
-		[SerializeField][ForceEventable(forceExpand=true)][ForceNoAutoListen(hide=true)]
+		[SerializeField][ForceEventable(true, false)][ForceNoAutoListen(true)]
 		protected TRef[] _data;
 
 		public override bool isValid {
@@ -58,7 +58,7 @@ namespace SmartData.Abstract {
 	public abstract class WriteSmartBase<TData, TRef> : SmartComponentBase
 		where TRef : ISmartRefWriter<TData>
 	{
-		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)][ForceHideEvent]
+		[SerializeField][ForceEventable(false, false)][ForceNoAutoListen(true)][ForceHideEvent]
 		protected TRef _data = default(TRef);
 
 		[SerializeField, Tooltip("Value to set when Set() is called")]
@@ -84,7 +84,7 @@ namespace SmartData.Abstract {
 	public abstract class WriteSetBase<TData, TRef> : SmartComponentBase
 		where TRef : ISmartSetRefWriter<TData>
 	{
-		[SerializeField][ForceEventable][ForceNoAutoListen(hide=true)][ForceHideEvent]
+		[SerializeField][ForceEventable(false, false)][ForceNoAutoListen(true)][ForceHideEvent]
 		protected TRef _data;
 		public override bool isValid {get {return _data != null;}}
 		protected override bool bindEvents {get {return false;}}

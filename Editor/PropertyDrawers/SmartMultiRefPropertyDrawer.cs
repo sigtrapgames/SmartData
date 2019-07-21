@@ -16,8 +16,8 @@ namespace SmartData.Editors {
 			
 			DrawMultiProperty(position, property, min, max);
 			if (IsForceHideEvent(property, fieldInfo)) return;
-			bool forceExpand;
-			IsForceEventable(property, fieldInfo, out forceExpand);
+			bool forceExpand, allowLocal;
+			IsForceEventable(property, fieldInfo, out forceExpand, out allowLocal);
 			DrawEvent(property, position, min, max, forceExpand);
 		}
 	}

@@ -66,9 +66,27 @@ namespace SmartData.Editors {
 		}
 		protected abstract void DrawGUI(Rect position, SerializedProperty property, GUIContent label, Vector2 min, Vector2 max);
 
-		protected Rect DrawLabel(Rect position, SerializedProperty property, GUIContent label){
-			position.height = BasePropertyHeight(property, label);			
-			return EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
+		///<summary>Draws property label and returns remaining rect space for rest of drawer</summary>
+		protected Rect DrawLabel(Rect position, SerializedProperty property, GUIContent label, bool eventable, bool forceShowEvent){
+			position.height = BasePropertyHeight(property, label);
+			if (eventable){
+				bool wasExpanded = property.isExpanded;
+				Rect result = new Rect();
+				if (forceShowEvent){
+					result = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
+				} else {
+					result = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), new GUIContent(" "));
+					position.width = position.width - result.width;
+					property.isExpanded = EditorGUI.Foldout(position, property.isExpanded, label, true);
+				}
+				
+				if (wasExpanded != property.isExpanded){
+					property.serializedObject.ApplyModifiedPropertiesWithoutUndo();
+				}
+				return result;				
+			} else {
+				return EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
+			}
 		}
 
 		protected bool GetEvents(SerializedProperty property, out SerializedProperty e0, out SerializedProperty e1){
@@ -91,10 +109,10 @@ namespace SmartData.Editors {
 				SerializedProperty e0, e1;
 				GetEvents(property, out e0, out e1);
 				if (e0 != null){
-					if (_forceExpand || e0.isExpanded){
+					if (_forceExpand || property.isExpanded){
 						result = GetEventHeight(e0) + GetEventHeight(e1) + bph + SPACING + 5;
 					} else {
-						result = 2*bph;
+						result = bph;
 					}
 				}
 			} else {
@@ -137,30 +155,19 @@ namespace SmartData.Editors {
 				Rect evtPos = new Rect();
 				evtPos.xMax = max.x;
 				evtPos.height = position.height;
+				evtPos.xMin = min.x + SPACING + SmartEditorUtils.indent;
+				evtPos.yMin = position.max.y+SPACING;;
 				_forceExpand = forceExpand;
-				bool wasExpanded = e0.isExpanded;
-				if (!_forceExpand){
-					Rect togglePos = new Rect();
-					togglePos.xMin = min.x + 15;
-					togglePos.width = (e0.isExpanded ? 20 : 60) - SPACING;
-					togglePos.yMin = position.max.y+SPACING;
-					togglePos.height = position.height;
-
-					evtPos.xMin = togglePos.max.x + SPACING + SmartEditorUtils.indent;
-					evtPos.yMin = togglePos.yMin;
-
-					e0.isExpanded = EditorGUI.Foldout(togglePos, e0.isExpanded, (e0.isExpanded ? "": "Event"));
-				} else {
-					e0.isExpanded = true;
-					evtPos.xMin = min.x;
-					evtPos.yMin = position.max.y+SPACING;
+				bool wasExpanded = property.isExpanded;
+				if (_forceExpand){
+					property.isExpanded = true;	
 				}
-				if (e0.isExpanded){
+
+				if (property.isExpanded){
 					evtPos.height = GetEventHeight(e0);
 					EditorGUI.PropertyField(evtPos, e0);
 					if (e1 != null){
 						evtPos = new Rect(evtPos.xMin, evtPos.yMin+evtPos.height+EditorGUIUtility.standardVerticalSpacing, evtPos.width, GetEventHeight(e1));
-						//evtPos.yMin = evtPos.yMax + EditorGUIUtility.standardVerticalSpacing;
 						EditorGUI.PropertyField(evtPos, e1);
 					}
 					
@@ -214,7 +221,7 @@ namespace SmartData.Editors {
 						GUI.enabled = true;
 					}
 				}
-				if (e0.isExpanded != wasExpanded){
+				if (property.isExpanded != wasExpanded){
 					property.serializedObject.ApplyModifiedPropertiesWithoutUndo();
 				}
 			}
@@ -260,16 +267,19 @@ namespace SmartData.Editors {
 			var result = w.Invoke(p.GetObject(), null);
 			return (bool)result;
 		}
-		protected bool IsForceEventable(SerializedProperty p, FieldInfo f, out bool forceExpand){
+		protected bool IsForceEventable(SerializedProperty p, FieldInfo f, out bool forceExpand, out bool allowLocal){
 			// Does the field have a ForceEventable attribute directly on it?
 			var ats = GetCustomAttributes(p, fieldInfo, typeof(ForceEventableAttribute), true);
 
 			if (ats != null && ats.Length > 0){
-				forceExpand = ((ForceEventableAttribute)ats[0]).forceExpand;
+				var a = ((ForceEventableAttribute)ats[0]);
+				forceExpand = a.forceExpand;
+				allowLocal = a.allowLocal;
 				return true;
 			}
 
 			forceExpand = false;
+			allowLocal = true;
 			return false;
 		}
 		protected bool IsForceHideEvent(SerializedProperty p, FieldInfo f){

@@ -17,12 +17,10 @@ namespace SmartData.Abstract {
 			Send(newValue);
 			// Stop event from being dispatched locally
 			if (_networkOnlyDispatch){
-				Debug.LogFormat("Decorator {0} on {1}: Block DISPATCH", GetType().Name, owner.name);
 				block |= BlockFlags.DISPATCH;
 			}
 			// Stop data from being updated locally
 			if (_networkOnlyValue){
-				Debug.LogFormat("Decorator {0} on {1}: Block DATA", GetType().Name, owner.name);
 				block |= BlockFlags.DATA;
 			}
 			return newValue;
@@ -32,7 +30,6 @@ namespace SmartData.Abstract {
 		/// Call to receive an update from the network.
 		/// </summary>
 		public void Receive(TData value){
-			Debug.LogFormat("Decorator {0} on {1}: RECEIVE", GetType().Name, owner.name);
 			// Take self out of OnSetValue callbacks to avoid loop
 			this.active = false;
 			// Set value
@@ -47,6 +44,9 @@ namespace SmartData.Abstract {
 	/// <para />Implement other behaviour to call Receive when event is replicated.
 	/// </summary>
 	public abstract class SmartNetworkEventDecoratorBase : SmartEventDecoratorBase {
+		[SerializeField, Tooltip("Only dispatch event across network, not locally.")]
+		bool _networkOnlyDispatch = false;
+
 		/// <summary>
 		/// Call to receive an update from the network.
 		/// </summary>
@@ -54,6 +54,13 @@ namespace SmartData.Abstract {
 			this.active = false;
 			owner.Dispatch();
 			this.active = true;
+		}
+		protected abstract void Send();
+		public override void OnDispatched(ref BlockFlags blockFlags){
+			Send();
+			if (_networkOnlyDispatch){
+				blockFlags |= BlockFlags.DISPATCH;
+			}
 		}
 	}
 	public abstract class SmartNetworkSetDecoratorBase<TData> : SmartSetDecoratorBase<TData> {
