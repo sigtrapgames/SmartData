@@ -10,8 +10,8 @@ using System.Reflection;
 namespace SmartData.Components {
 	[AddComponentMenu("")]
 	public class SmartRefUnbinder : MonoBehaviour {
-		#region Static
-		#if UNITY_EDITOR
+	#region Static
+	#if UNITY_EDITOR
 		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 		static void Init(){
 			EditorApplication.playModeStateChanged += OnEditorChangePlayMode;
@@ -45,7 +45,7 @@ namespace SmartData.Components {
 										ownerName.GetValue(sr), sr.GetType().Name	
 									);
 								} else {
-									SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(sr, ownerGo, true);
+									SmartData.Components.SmartRefUnbinder.UnbindUnityEventOnDestroy(sr, ownerGo, true);
 								}
 							}
 						}
@@ -54,21 +54,22 @@ namespace SmartData.Components {
 				EditorApplication.playModeStateChanged -= OnEditorChangePlayMode;
 			}
 		}
-		#endif
+	#endif
 
 		static Dictionary<GameObject, SmartRefUnbinder> _all = new Dictionary<GameObject, SmartRefUnbinder>();
 		/// <summary>
 		/// Register SmartRef for automatic event unbinding when gameobject is destroyed.
 		/// Note: adds a MonoBehaviour to the gameobject when first called.
 		/// </summary>
-		public static void UnbindOnDestroy(SmartRefBase r, GameObject go, bool enableUnityEventNow=true){
+		public static void UnbindUnityEventOnDestroy(SmartRefBase r, GameObject go, bool enableUnityEventNow=true){
 			if (enableUnityEventNow){
 				r.unityEventOnReceive = true;
 			}
 
 			#if UNITY_EDITOR
 			// OnEditorChangePlayMode will automatically go through registered SmartRefs on Start
-			if (!_isPlaying) return;
+			// EditorApplication.isPlayingOrWillChangePlaymode required for manual calls during first 2 frames
+			if (!_isPlaying && !EditorApplication.isPlayingOrWillChangePlaymode) return;
 			#endif
 			
 			SmartRefUnbinder helper = null;
@@ -78,9 +79,9 @@ namespace SmartData.Components {
 			}
 			helper._refs.Add(r);
 		}
-		#endregion
+	#endregion Static
 
-		#region Instance
+	#region Instance
 		List<SmartRefBase> _refs = new List<SmartRefBase>();
 
 		void OnDestroy(){
@@ -89,6 +90,6 @@ namespace SmartData.Components {
 			}
 			_all.Remove(gameObject);
 		}
-		#endregion
+	#endregion Instance
 	}
 }

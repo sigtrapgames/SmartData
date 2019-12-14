@@ -82,7 +82,7 @@ namespace SmartData.Abstract {
 			}
 			public static void AutoBind(List<ISmartRef> refs){
 				for (int i=0; i<refs.Count; ++i){
-					refs[i].UnbindOnDestroy();
+					refs[i].UnbindUnityEventOnDestroy();
 				}
 				refs.Clear();
 			}
@@ -120,7 +120,7 @@ namespace SmartData.Abstract {
 		/// Auto-binding requires addition of SmartRefUnbinder component which cannot be created during deserialization.
 		/// So Data waits for value to be changed, then binds event and add component.
 		/// </summary>
-		public void RequestCtorAutoBinding(ISmartRef r){
+		public void RequestCtorAutoUnityEventBinding(ISmartRef r){
 			_binder.RequestAutoBinding(r);
 		}
 
@@ -699,7 +699,7 @@ namespace SmartData.Abstract {
 		/// Multi elements created lazily and cannot be created during deserialization.
 		/// So Multi waits for element to be accessed, then binds event and adds component.
 		/// </summary>
-		public void RequestCtorAutoBinding(ISmartRef r, int index){
+		public void RequestCtorAutoUnityEventBinding(ISmartRef r, int index){
 			List<ISmartRef> refs = null;
 			if (!_refsToBindByIndex.TryGetValue(index, out refs)){
 				refs = new List<ISmartRef>();

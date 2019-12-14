@@ -33,7 +33,7 @@ namespace SmartData.Editors {
 			GUI.enabled = true;
 
 			Color gc = GUI.color;
-			EditorGUI.BeginChangeCheck();
+			bool changed = false;
 
 			int toRemove = -1;
 			var spData = serializedObject.FindProperty("_data");	// Get each time to reset iterator
@@ -45,6 +45,7 @@ namespace SmartData.Editors {
 				GUI.enabled = true;
 				if (add){
 					++spData.arraySize;
+					changed = true;
 				}
 				GUI.color = gc;
                 EditorGUILayout.LabelField("Elements: " + spData.arraySize.ToString());
@@ -54,20 +55,22 @@ namespace SmartData.Editors {
 					spData.NextVisible(true);
 					int i = 0;
 					while (spData.NextVisible(false)){
-                        EditorGUILayout.BeginHorizontal();
-                        EditorGUILayout.BeginVertical(GUILayout.MaxWidth(25));
-                        GUILayout.Space(20);
-                        GUI.color = _red;
-                        GUI.enabled = !Application.isPlaying;
-						if (GUILayout.Button("-", GUILayout.Height(40))){
-							toRemove = i;
-						}
-                        GUI.enabled = true;
-                        GUI.color = gc;
-                        EditorGUILayout.EndVertical();
-
-                        EditorGUILayout.PropertyField(spData, true);
-                        EditorGUILayout.EndHorizontal();
+                        EditorGUILayout.BeginHorizontal();{
+							EditorGUILayout.BeginVertical(GUILayout.MaxWidth(25));{
+								GUILayout.Space(20);
+								GUI.color = _red;
+								GUI.enabled = !Application.isPlaying;
+								if (GUILayout.Button("-", GUILayout.Height(40))){
+									toRemove = i;
+									changed = true;
+								}
+								GUI.enabled = true;
+								GUI.color = gc;
+							} EditorGUILayout.EndVertical();
+							EditorGUI.BeginChangeCheck();
+							EditorGUILayout.PropertyField(spData, true);
+							changed |= EditorGUI.EndChangeCheck();
+						} EditorGUILayout.EndHorizontal();
 						++i;
 					}
 				}
@@ -79,7 +82,7 @@ namespace SmartData.Editors {
 				EditorGUILayout.PropertyField(_valueToSet);
 			}
 
-			if (EditorGUI.EndChangeCheck()){
+			if (changed){
 				if (toRemove >= 0){
 					serializedObject.FindProperty("_data").DeleteArrayElementAtIndex(toRemove);
 				}

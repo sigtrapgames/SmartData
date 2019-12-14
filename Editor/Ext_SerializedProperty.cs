@@ -154,7 +154,6 @@ namespace UnityEditor {
 			return fi;
 		}
 		public static System.Type GetFieldType(this SerializedProperty p){
-			object o = p.serializedObject.targetObject;
 			return GetField(p).FieldType;
 		}
 		/// <summary>

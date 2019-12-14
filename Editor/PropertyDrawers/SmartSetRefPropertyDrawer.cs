@@ -42,8 +42,8 @@ namespace SmartData.Editors {
 			Rect btnPos, rwPos;
 			GetSmartFieldRects(property, label, max, ref fieldPos, out rwPos, out btnPos, false, !_forceEventable);
 
-			bool forceExpand;
-			_forceEventable = IsForceEventable(property, fieldInfo, out forceExpand);
+			bool forceExpand, allowLocal;
+			_forceEventable = IsForceEventable(property, fieldInfo, out forceExpand, out allowLocal);
 			if (_forceEventable){
 				_isEventable = true;
 				GUI.enabled = !Application.isPlaying;	

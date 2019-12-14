@@ -67,13 +67,13 @@ namespace SmartData.SmartEvent {
 	[System.Serializable]
 	public class EventMultiDispatcher : EventMultiListener {
 		public void Dispatch(){
-			_event.Dispatch();
-			if (!unityEventOnReceive){
+			var b = _event.Dispatch();
+			if (!unityEventOnReceive && !b.Contains(BlockFlags.DISPATCH)){
 				InvokeUnityEvent();
 			}
-			#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
+		#if UNITY_EDITOR && !SMARTDATA_NO_GRAPH_HOOKS
 			Editors.SmartDataRegistry.OnRefCallToSmart(this, _multi, _event);
-			#endif
+		#endif
 		}
 	}
 }

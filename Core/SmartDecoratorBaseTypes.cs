@@ -9,11 +9,11 @@ using System.Linq;
 namespace SmartData.Abstract {
 	[System.Flags]
 	public enum BlockFlags {
-		/// <summary>This decorator does not block dispatch, following decorators or data update.</summary>
+		/// <summary>This decorator does not block dispatch, data update or subsequent decorators.</summary>
 		NONE = 0,
-		/// <summary>This decorator blocks event dispatch.</summary>
+		/// <summary>This decorator blocks event dispatch, including SmartRef UnityEvents.</summary>
 		DISPATCH = 1,
-		/// <summary>This decorator blocks following decorators from being called.</summary>
+		/// <summary>This decorator blocks subsequent decorators from being called.</summary>
 		DECORATORS = 2,
 		/// <summary>This decorator blocks data from being updated.</summary>
 		DATA = 4
@@ -108,19 +108,11 @@ namespace SmartData.Abstract {
 	public abstract class SmartEventDecoratorBase : SmartDecoratorBase, ISmartRefOwnerRedirect {
 		SmartEvent.Data.EventVar _owner;
 		public SmartEvent.Data.EventVar owner {get {return _owner;}}
-		IRelayBinding _onDispatchBinding;
 
 		protected override void OnSetOwner(SmartBindableBase owner){
 			this._owner = (SmartEvent.Data.EventVar)owner;
-			_onDispatchBinding = this._owner.BindListener(OnDispatched);
 		}
-		protected override void OnActivate(){
-			_onDispatchBinding.Enable(true);
-		}
-		protected override void OnDeactivate(){
-			_onDispatchBinding.Enable(false);
-		}
-		protected virtual void OnDispatched(){}
+		public abstract void OnDispatched(ref BlockFlags blockFlags);
 
 		public Object GetSmartRefOwner(){
 			return _owner;

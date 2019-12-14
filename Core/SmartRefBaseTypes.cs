@@ -40,7 +40,10 @@ namespace SmartData.Abstract {
 		#endif
 
 		protected void LogError(string format, params object[] args){
-			format = string.Format("{0} on {1}: {2}", GetType().Name, _ownerName, format);
+			format = string.Format(
+				"{0} on {1}: {2}", GetType().Name, 
+				_owner ? _owner.name : _ownerName, format
+			);
 			if (_owner){
 				Debug.LogErrorFormat(_owner, format, args);
 			} else {
@@ -119,12 +122,17 @@ namespace SmartData.Abstract {
 		/// Note: adds a MonoBehaviour to the gameobject when first called.
 		/// Called automatically if Auto Bind checked in editor.
 		/// </summary>
-		public void UnbindOnDestroy(bool enableUnityEventNow=true){
+		public void UnbindUnityEventOnDestroy(bool enableUnityEventNow=true){
 			// Might be destroyed before getting bound
-			if (_owner && _owner is Component){
-				var go = (_owner as Component).gameObject;
+			if (_owner){
+				GameObject go = null;
+				if (_owner is Component){
+					go = (_owner as Component).gameObject;
+				} else {
+					go = (_owner as GameObject);
+				}
 				if (go){
-					SmartData.Components.SmartRefUnbinder.UnbindOnDestroy(this, go, enableUnityEventNow);
+					SmartData.Components.SmartRefUnbinder.UnbindUnityEventOnDestroy(this, go, enableUnityEventNow);
 				}
 			}
 		}
@@ -151,15 +159,21 @@ namespace SmartData.Abstract {
 			MULTI
 		}
 
-		protected static readonly RefType[] TYPES_ALL = new List<RefType>(
+		public static readonly RefType[] TYPES_ALL = new List<RefType>(
 			(RefType[])System.Enum.GetValues(typeof(RefType))
 		).ToArray();
-		protected static readonly RefType[] TYPES_WRITABLE = 
+		public static readonly RefType[] TYPES_SMART = 
+			TYPES_ALL.Where((r)=>{return r != RefType.LOCAL;}).ToArray();
+		public static readonly RefType[] TYPES_WRITABLE = 
 			TYPES_ALL.Where((r)=>{return r != RefType.CONST;}).ToArray();
+		public static readonly RefType[] TYPES_COMPONENTABLE = 
+			TYPES_WRITABLE.Where((r)=>{return r != RefType.LOCAL;}).ToArray();
 
-		#if UNITY_EDITOR || DEVELOPMENT_BUILD
-		protected static readonly string[] TYPENAMES_ALL = GetTypenames(TYPES_ALL);
-		protected static readonly string[] TYPENAMES_WRITABLE = GetTypenames(TYPES_WRITABLE);
+	#if UNITY_EDITOR || DEVELOPMENT_BUILD
+		public static readonly string[] TYPENAMES_ALL = GetTypenames(TYPES_ALL);
+		public static readonly string[] TYPENAMES_SMART = GetTypenames(TYPES_SMART);
+		public static readonly string[] TYPENAMES_WRITABLE = GetTypenames(TYPES_WRITABLE);
+		public static readonly string[] TYPENAMES_COMPONENTABLE = GetTypenames(TYPES_COMPONENTABLE);
 
 		static string[] GetTypenames(RefType[] rts){
 			string[] result = new string[rts.Length];
@@ -168,10 +182,10 @@ namespace SmartData.Abstract {
 			}
 			return result;
 		}
-		#endif
+	#endif
 
 		[SerializeField]
-		protected RefType _refType = RefType.VAR;	// Note: Never default to CONST as Writer doesn't support it
+		protected RefType _refType = RefType.VAR;	// Default to VAR as all configs support it
 
 		protected bool _isEventable {
 			get {
@@ -191,12 +205,20 @@ namespace SmartData.Abstract {
 		where TConst : SmartConst<TData>
 		where TMulti : SmartMulti<TData, TVar>
 	{
-		#if UNITY_EDITOR || DEVELOPMENT_BUILD
-		static RefType[] _EDITOR_GetUsableRefTypes(){
-			return TYPES_ALL;
+	#if UNITY_EDITOR || DEVELOPMENT_BUILD
+		static RefType[] _EDITOR_GetUsableRefTypes(bool forceEventable, bool allowLocal){
+			if (!forceEventable){
+				return allowLocal ? TYPES_ALL : TYPES_SMART;
+			} else {
+				return allowLocal ? TYPES_WRITABLE : TYPES_COMPONENTABLE;
+			}
 		}
-		static string[] _EDITOR_GetUsableRefNames(){
-			return TYPENAMES_ALL;
+		static string[] _EDITOR_GetUsableRefNames(bool forceEventable, bool allowLocal){
+			if (!forceEventable){
+				return allowLocal ? TYPENAMES_ALL : TYPENAMES_SMART;
+			} else {
+				return allowLocal ? TYPENAMES_WRITABLE : TYPENAMES_COMPONENTABLE;
+			}
 		}
 		protected sealed override SmartBase _EDITOR_GetSmartObject(out bool useMultiIndex){
 			useMultiIndex = false;
@@ -211,9 +233,9 @@ namespace SmartData.Abstract {
 			}
 			return null;
 		}
-		#endif
+	#endif
 
-		#if UNITY_EDITOR
+	#if UNITY_EDITOR
 		protected virtual void TriggerSmartRegistry(){
 			if (_refType == RefType.MULTI){
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartMulti, _writeable);
@@ -221,7 +243,7 @@ namespace SmartData.Abstract {
 				Editors.SmartDataRegistry.OnRefCallToSmart(this, _smartVar);
 			}
 		}
-		#endif
+	#endif
 
 		[SerializeField]
 		protected TData _value = default(TData);
@@ -397,12 +419,12 @@ namespace SmartData.Abstract {
 				switch (_refType){
 					case RefType.VAR:
 						if (_smartVar != null){
-							_smartVar.RequestCtorAutoBinding(this);
+							_smartVar.RequestCtorAutoUnityEventBinding(this);
 						}
 						break;
 					case RefType.MULTI:
 						if (_smartMulti != null){
-							_smartMulti.RequestCtorAutoBinding(this, _multiIndex);
+							_smartMulti.RequestCtorAutoUnityEventBinding(this, _multiIndex);
 						}
 						break;
 				}
@@ -424,11 +446,11 @@ namespace SmartData.Abstract {
 		where TMulti : SmartMulti<TData, TVar>
 	{
 		#if UNITY_EDITOR || DEVELOPMENT_BUILD
-		static RefType[] _EDITOR_GetUsableRefTypes(){{
-			return TYPES_WRITABLE;
+		static RefType[] _EDITOR_GetUsableRefTypes(bool forceEventable, bool allowLocal){{
+			return allowLocal ? TYPES_WRITABLE : TYPES_COMPONENTABLE;
 		}}
-		static string[] _EDITOR_GetUsableRefNames(){{
-			return TYPENAMES_WRITABLE;
+		static string[] _EDITOR_GetUsableRefNames(bool forceEventable, bool allowLocal){{
+			return allowLocal ? TYPENAMES_WRITABLE : TYPENAMES_COMPONENTABLE;
 		}}
 		protected sealed override bool _EDITOR_GetIsWritable(){return true;}
 		#endif
@@ -734,7 +756,7 @@ namespace SmartData.Abstract {
 			}
 
 			if (_autoListen && _useList && _smartSet != null){
-				_smartSet.RequestCtorAutoBinding(this);
+				_smartSet.RequestCtorAutoUnityEventBinding(this);
 			}
 		}
 		protected void Restore(){

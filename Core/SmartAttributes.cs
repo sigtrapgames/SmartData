@@ -13,6 +13,14 @@ namespace SmartData {
 		/// Force the UnityEvent attached to this SmartRef to always be visible in the editor.
 		/// </summary>
 		public bool forceExpand {get;set;}
+		/// <summary>
+		/// Allow LOCAL values, i.e. non-SmartObject. LOCAL mode still fires local Relay/UnityEvent. True by default.
+		/// </summary>
+		public bool allowLocal {get;set;}
+		public ForceEventableAttribute(bool forceExpand=false, bool allowLocal=true){
+			this.forceExpand = forceExpand;
+			this.allowLocal = allowLocal;
+		}
 	}
 
 	/// <summary>
@@ -32,6 +40,9 @@ namespace SmartData {
 		/// <para />If false (default) checkbox is shown but greyed out.
 		/// </summary>
 		public bool hide {get; set;}
+		public ForceNoAutoListenAttribute(bool hide=false){
+			this.hide = hide;
+		}
 	}
 
 	/// <summary>
