@@ -62,11 +62,6 @@ namespace SmartData.Editors {
 				refTypeProp.intValue = (int)refTypes[0];
 				property.serializedObject.ApplyModifiedPropertiesWithoutUndo();
 			}
-			/*for (int i=0; i<rtNames.Length; ++i){
-				_refTypeLabels[i] = new GUIContent(
-					rtNames[i], _tooltips[rts[i]] + "\nClick to change."
-				);
-			}*/
 			int currentRefTypeIndex = -1;
 			for (int i=0; i<refTypes.Length; ++i){
 				if (refType == refTypes[i]){
@@ -88,7 +83,7 @@ namespace SmartData.Editors {
 
 			// Select type
 			GUI.enabled = !Application.isPlaying;
-			int newIndex = EditorGUI.Popup(popupPos, currentRefTypeIndex, refTypeNames/*_refTypeLabels*/);
+			int newIndex = EditorGUI.Popup(popupPos, currentRefTypeIndex, refTypeNames);
 			if (newIndex != currentRefTypeIndex){
 				refTypeProp.intValue = (int)refTypes[newIndex];
 				property.serializedObject.ApplyModifiedProperties();

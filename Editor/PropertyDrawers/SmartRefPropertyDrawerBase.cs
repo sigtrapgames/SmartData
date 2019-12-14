@@ -12,7 +12,6 @@ namespace SmartData.Editors {
 		static readonly GUIContent _gcCreateBtn = new GUIContent("+", "Create a new SmartObject asset for this field.");
 		bool _forceExpand;
 		protected virtual bool _isEventable {get; set;}
-		float _lastHeight;
 
 		protected SerializedProperty _baseProperty {get; private set;}
 		public sealed override void OnGUI(Rect position, SerializedProperty property, GUIContent label){
@@ -57,12 +56,16 @@ namespace SmartData.Editors {
 				property.serializedObject.ApplyModifiedProperties();
 			}
 			
+			EditorGUI.BeginChangeCheck();
 			EditorGUI.BeginProperty(position, label, property);
 			Vector2 min = position.min;
 			Vector2 max = position.max;
 			position.height = BasePropertyHeight(property, label);
 			DrawGUI(position, property, label, min, max);
 			EditorGUI.EndProperty();
+			if (EditorGUI.EndChangeCheck()){
+				property.serializedObject.ApplyModifiedProperties();
+			}
 		}
 		protected abstract void DrawGUI(Rect position, SerializedProperty property, GUIContent label, Vector2 min, Vector2 max);
 
@@ -104,7 +107,7 @@ namespace SmartData.Editors {
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label){
 			float bph = BasePropertyHeight(property, label);
-			float result = -1;
+			float result = bph;
 			if (_isEventable){
 				SerializedProperty e0, e1;
 				GetEvents(property, out e0, out e1);
@@ -118,12 +121,6 @@ namespace SmartData.Editors {
 			} else {
 				result = bph;
 			}
-			if (result != _lastHeight){
-				// Force repaint
-				property.serializedObject.Update();
-				EditorApplication.update();
-			}
-			_lastHeight = result;
 			return result;
 		}
 		protected float BasePropertyHeight(SerializedProperty property, GUIContent label){
@@ -131,13 +128,17 @@ namespace SmartData.Editors {
 		}
 		static MethodInfo _getPersistentListeners;
 		protected int GetPersistentListeners(SerializedProperty evtProp){
-			if (_getPersistentListeners == null){
-				_getPersistentListeners = evtProp.GetObject().GetType().GetMethod(
-					"GetPersistentEventCount",
-					BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy
-				);
+			try {
+				if (_getPersistentListeners == null){
+					_getPersistentListeners = evtProp.GetObject().GetType().GetMethod(
+						"GetPersistentEventCount",
+						BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy
+					);
+				}
+				return (int)_getPersistentListeners.Invoke(evtProp.GetObject(), null);
+			} catch {
+				return 0;
 			}
-			return (int)_getPersistentListeners.Invoke(evtProp.GetObject(), null);
 		}
 		float GetEventHeight(SerializedProperty evt, bool includeFooter=true){
 			if (evt == null) return 0;

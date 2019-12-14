@@ -27,6 +27,8 @@ namespace SmartData.Editors {
 		}
 
 		public override void OnInspectorGUI(){
+			EditorGUI.BeginChangeCheck();
+			
 			EditorGUILayout.Space();
 			GUI.enabled = false;
 			EditorGUILayout.PropertyField(_spScript);
@@ -67,9 +69,7 @@ namespace SmartData.Editors {
 								GUI.enabled = true;
 								GUI.color = gc;
 							} EditorGUILayout.EndVertical();
-							EditorGUI.BeginChangeCheck();
 							EditorGUILayout.PropertyField(spData, true);
-							changed |= EditorGUI.EndChangeCheck();
 						} EditorGUILayout.EndHorizontal();
 						++i;
 					}
@@ -79,10 +79,10 @@ namespace SmartData.Editors {
 			}
 			
 			if (_valueToSet != null){
-				EditorGUILayout.PropertyField(_valueToSet);
+				EditorGUILayout.PropertyField(_valueToSet, true);
 			}
 
-			if (changed){
+			if (EditorGUI.EndChangeCheck() || changed){
 				if (toRemove >= 0){
 					serializedObject.FindProperty("_data").DeleteArrayElementAtIndex(toRemove);
 				}
