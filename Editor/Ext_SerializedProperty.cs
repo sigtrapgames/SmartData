@@ -148,6 +148,16 @@ namespace UnityEditor {
 				} else {
 					fi = t.GetFieldPrivate(elements[i], FLAGS_ALL);
 				}
+				while (fi == null){
+					// Might be an array (or array of arrays etc), so get underlying type and try to find field again
+					var tUnderlying = t.GetElementType();
+					if (tUnderlying != null){
+						t = tUnderlying;
+						fi = t.GetFieldPrivate(elements[i], FLAGS_ALL);
+					} else {
+						break;
+					}
+				}
 				if (fi == null) return null;
 				t = fi.FieldType;
 			}
