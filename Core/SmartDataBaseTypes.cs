@@ -7,6 +7,12 @@ using SmartData.Interfaces;
 using System.Linq;
 
 namespace SmartData {
+	public static class SmartDataInfo {
+		public const string VERSION = "0.2.1";
+		public const int VERSION_MAJOR = 0;
+		public const int VERSION_MINOR = 2;
+		public const int VERSION_PATCH = 1;
+	}
 #region Enums and Structs
 	public enum MultiElementType {
 		/// <summary>This SmartObject is not an element in any SmartMultis.</summary>
